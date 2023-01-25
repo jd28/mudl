@@ -1,0 +1,110 @@
+#include "model.hpp"
+
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
+bgfx::VertexLayout Node::layout;
+
+void Node::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state)
+{
+    auto trans = glm::translate(_mtx, position_);
+
+    for (auto child : children_) {
+        child->submit(_id, _program, trans, _state);
+    }
+}
+
+// == Mesh ===================================================================
+// ============================================================================
+
+void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4& _mtx, uint64_t _state)
+{
+    static bgfx::UniformHandle s_texColor = bgfx::createUniform("s_texColor", bgfx::UniformType::Sampler);
+
+    if (BGFX_STATE_MASK == _state) {
+        _state = 0
+            | BGFX_STATE_WRITE_RGB
+            | BGFX_STATE_WRITE_A
+            | BGFX_STATE_WRITE_Z
+            | BGFX_STATE_DEPTH_TEST_LESS
+            | BGFX_STATE_CULL_CCW
+            | BGFX_STATE_MSAA;
+    }
+
+    auto trans = glm::translate(_mtx, position_);
+    trans = glm::rotate(trans, rotation_[3], {rotation_[0], rotation_[1], rotation_[2]});
+    trans = glm::scale(trans, scale_);
+
+    // LOG_F(INFO, "Submitting node: {}", orig->name);
+
+    bgfx::setTransform(&trans[0][0]);
+    bgfx::setState(_state);
+    bgfx::setVertexBuffer(0, vbh_);
+    bgfx::setIndexBuffer(ibh_);
+    bgfx::setTexture(0, s_texColor, texture0);
+    bgfx::submit(
+        _id, _program, 0, BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_VERTEX_STREAMS);
+
+    bgfx::discard();
+
+    for (auto child : children_) {
+        child->submit(_id, _program, trans, _state);
+    }
+}
+
+// == Model Loading ===========================================================
+// ============================================================================
+
+static inline Node* load_node(nw::model::Node* node, bgfx::TextureHandle handle)
+{
+    Node* result = nullptr;
+
+    if (node->type & nw::model::NodeFlags::mesh) {
+        Mesh* mesh = new Mesh;
+        auto n = static_cast<nw::model::TrimeshNode*>(node);
+        if (!n->indices.empty()) {
+            LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
+            auto index_mem = bgfx::makeRef(n->indices.data(), uint32_t(n->indices.size() * sizeof(uint16_t)));
+            mesh->ibh_ = bgfx::createIndexBuffer(index_mem);
+
+            auto mem = bgfx::alloc(uint32_t(n->vertices.size() * Node::layout.getStride()));
+
+            uint32_t i = 0;
+            for (const auto& v : n->vertices) {
+                bgfx::vertexPack(&v.position.x, false, bgfx::Attrib::Position, Node::layout, mem->data, i);
+                bgfx::vertexPack(&v.tex_coords.x, false, bgfx::Attrib::TexCoord0, Node::layout, mem->data, i);
+                ++i;
+            }
+            mesh->texture0 = handle;
+            mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
+
+            auto [pk, pdata] = n->get_controller(nw::model::ControllerType::Position);
+            if (pdata.size() != 3) {
+                LOG_F(FATAL, "Wrong size position: {}", pdata.size());
+            }
+            mesh->position_ = glm::vec3{pdata[0], pdata[1], pdata[2]};
+
+            auto [ok, odata] = n->get_controller(nw::model::ControllerType::Orientation);
+            if (odata.size() != 4) {
+                LOG_F(FATAL, "Wrong size orientation: {}", odata.size());
+            }
+            mesh->orig = n;
+            mesh->rotation_ = glm::vec4{odata[0], odata[1], odata[2], odata[3]};
+        }
+        result = mesh;
+    } else {
+        result = new Node;
+    }
+
+    for (auto child : node->children) {
+        result->children_.push_back(load_node(child, handle));
+    }
+    return result;
+}
+
+Node* load_model(nw::model::Model* mdl, bgfx::TextureHandle handle)
+{
+    auto root = mdl->find("rootdummy");
+    if (!root) { return nullptr; }
+    return load_node(root, handle);
+}

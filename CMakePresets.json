@@ -1,0 +1,152 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "linux",
+            "displayName": "Default Config",
+            "description": "Default build using Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                    "type": "FILEPATH"
+                },
+                "CMAKE_RUNTIME_OUTPUT_DIRECTORY": {
+                    "value": "${sourceDir}/bin",
+                    "type": "FILEPATH"
+                },
+                "ROLLNW_BUILD_BENCHMARKS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "LUAU_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_RUNTIME_SCRIPTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ROLLNW_BUILD_TESTS": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                },
+                "ENABLE_SANITIZER_ADDRESS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
+            "name": "ci-codeql",
+            "inherits": "linux",
+            "displayName": "ci-codeql",
+            "description": "CodeQL build",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "ENABLE_TESTING": {
+                    "type": "BOOL",
+                    "value": "OFF"
+                }
+            }
+        },
+        {
+            "name": "ci-linux",
+            "inherits": "linux",
+            "displayName": "ci-linux",
+            "description": "Default build with tests and code coverage, no python",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "CODE_COVERAGE": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ENABLE_SANITIZER_ADDRESS": {
+                    "type": "BOOL",
+                    "value": true
+                },
+                "ENABLE_SANITIZER_UNDEFINED_BEHAVIOR": {
+                    "type": "BOOL",
+                    "value": true
+                },
+                "BUILD_DOCS": {
+                    "type": "BOOL",
+                    "value": true
+                }
+            }
+        },
+        {
+            "name": "windows",
+            "inherits": "linux",
+            "generator": "Visual Studio 16 2019",
+            "displayName": "Windows-only configuration",
+            "description": "This build is only available on Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "VCPKG_HOST_TRIPLET": "x64-windows-static"
+            }
+        },
+        {
+            "name": "ci-windows",
+            "inherits": "windows",
+            "generator": "Ninja",
+            "displayName": "windows ci build",
+            "description": "windows ci build"
+        },
+        {
+            "name": "macos",
+            "inherits": "linux",
+            "displayName": "macOS-only configuration",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "linux"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "configurePreset": "linux",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        }
+    ]
+}
