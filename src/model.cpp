@@ -1,7 +1,11 @@
 #include "model.hpp"
 
+#include "TextureCache.hpp"
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+
+static TextureCache textures;
 
 bgfx::VertexLayout Node::layout;
 
@@ -55,7 +59,7 @@ void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
 // == Model Loading ===========================================================
 // ============================================================================
 
-static inline Node* load_node(nw::model::Node* node, bgfx::TextureHandle handle)
+static inline Node* load_node(nw::model::Node* node)
 {
     Node* result = nullptr;
 
@@ -75,7 +79,7 @@ static inline Node* load_node(nw::model::Node* node, bgfx::TextureHandle handle)
                 bgfx::vertexPack(&v.tex_coords.x, false, bgfx::Attrib::TexCoord0, Node::layout, mem->data, i);
                 ++i;
             }
-            mesh->texture0 = handle;
+
             mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
 
             auto [pk, pdata] = n->get_controller(nw::model::ControllerType::Position);
@@ -90,6 +94,14 @@ static inline Node* load_node(nw::model::Node* node, bgfx::TextureHandle handle)
             }
             mesh->orig = n;
             mesh->rotation_ = glm::vec4{odata[0], odata[1], odata[2], odata[3]};
+
+            // Force tga for now
+            auto tex = textures.load(n->bitmap, nw::ResourceType::tga);
+            if (tex) {
+                mesh->texture0 = *tex;
+            } else {
+                LOG_F(FATAL, "Failed to bind texture");
+            }
         }
         result = mesh;
     } else {
@@ -97,14 +109,14 @@ static inline Node* load_node(nw::model::Node* node, bgfx::TextureHandle handle)
     }
 
     for (auto child : node->children) {
-        result->children_.push_back(load_node(child, handle));
+        result->children_.push_back(load_node(child));
     }
     return result;
 }
 
-Node* load_model(nw::model::Model* mdl, bgfx::TextureHandle handle)
+Node* load_model(nw::model::Model* mdl)
 {
     auto root = mdl->find("rootdummy");
     if (!root) { return nullptr; }
-    return load_node(root, handle);
+    return load_node(root);
 }

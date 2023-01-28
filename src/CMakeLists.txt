@@ -4,6 +4,7 @@ add_executable(mudl
     main.cpp
     model.cpp
     util.cpp
+    TextureCache.cpp
 
     vs_mudl.sc
     fs_mudl.sc

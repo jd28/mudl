@@ -50,4 +50,4 @@ struct Mesh : public Node {
     // PrimitiveArray prims_;
 };
 
-Node* load_model(nw::model::Model* mdl, bgfx::TextureHandle handle);
+Node* load_model(nw::model::Model* mdl);

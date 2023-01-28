@@ -114,14 +114,7 @@ int main(int argc, char** argv)
     nw::model::Mdl mdl{std::move(bytes)};
     if (!mdl.valid()) { return 1; }
 
-    nw::Image texture{nw::kernel::resman().demand({"c_cat_dire"sv, nw::ResourceType::tga})};
-    auto size = texture.channels() * texture.height() * texture.width();
-    auto mem = bgfx::makeRef(texture.data(), size);
-    auto tex_handle = bgfx::createTexture2D(uint16_t(texture.width()), uint16_t(texture.height()), false, 1,
-        texture.channels() == 4 ? bgfx::TextureFormat::RGBA8 : bgfx::TextureFormat::RGB8,
-        BGFX_TEXTURE_NONE | BGFX_SAMPLER_NONE, mem);
-
-    auto model = load_model(&mdl.model, tex_handle);
+    auto model = load_model(&mdl.model);
     if (!model) {
         LOG_F(FATAL, "uanble to load model.");
     }
