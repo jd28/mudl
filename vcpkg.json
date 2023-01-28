@@ -18,6 +18,7 @@
         "glm",
         "benchmark",
         "stduuid",
-        "sdl2"
+        "sdl2",
+        "imgui"
     ]
 }

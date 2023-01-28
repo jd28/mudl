@@ -9,5 +9,7 @@ Hackish proof of concept model viewer for NWN Models..  mdl + having only muddle
 
 # Tech
 - bgfx
+- Dear imgui
 - sdl2
+- glm
 - rollnw

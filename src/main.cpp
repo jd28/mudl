@@ -2,6 +2,10 @@
 
 #include "util.hpp"
 
+#include "bgfx-imgui/imgui_impl_bgfx.h"
+#include "imgui.h"
+#include "sdl-imgui/imgui_impl_sdl.h"
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include <bgfx/bgfx.h>
@@ -87,6 +91,19 @@ int main(int argc, char** argv)
     bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
     bgfx_init.platformData = pd;
     bgfx::init(bgfx_init);
+
+    ImGui::CreateContext();
+
+    ImGui_Implbgfx_Init(255);
+#if BX_PLATFORM_WINDOWS
+    ImGui_ImplSDL2_InitForD3D(window);
+#elif BX_PLATFORM_OSX
+    ImGui_ImplSDL2_InitForMetal(window);
+#elif BX_PLATFORM_LINUX || BX_PLATFORM_EMSCRIPTEN
+    ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
+#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
+       // BX_PLATFORM_EMSCRIPTEN
+
     nw::ByteArray vs_mudl_bytes = nw::ByteArray::from_file("vs_mudl.bin");
     if (vs_mudl_bytes.size() == 0) {
         return 1;
@@ -119,45 +136,63 @@ int main(int argc, char** argv)
         LOG_F(FATAL, "uanble to load model.");
     }
 
-    bool exit = false;
-    SDL_Event event;
-    while (!exit) {
-        while (SDL_PollEvent(&event)) {
+    int prev_mouse_x = 0;
+    int prev_mouse_y = 0;
+    float cam_pitch = 0.0f;
+    float cam_yaw = 0.0f;
+    float rot_scale = 0.01f;
 
-            switch (event.type) {
-            case SDL_QUIT:
+    bool exit = false;
+    while (!exit) {
+        for (SDL_Event currentEvent; SDL_PollEvent(&currentEvent) != 0;) {
+            ImGui_ImplSDL2_ProcessEvent(&currentEvent);
+            if (currentEvent.type == SDL_QUIT) {
                 exit = true;
                 break;
-
-            case SDL_WINDOWEVENT: {
-                const SDL_WindowEvent& wev = event.window;
-                switch (wev.event) {
-                case SDL_WINDOWEVENT_RESIZED:
-                case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    break;
-
-                case SDL_WINDOWEVENT_CLOSE:
-                    exit = true;
-                    break;
-                }
-            } break;
             }
         }
+
+        ImGui_Implbgfx_NewFrame();
+        ImGui_ImplSDL2_NewFrame();
+
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow(); // your drawing here
+        ImGui::Render();
+        ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
+
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            // simple input code for orbit camera
+            int mouse_x, mouse_y;
+            const int buttons = SDL_GetMouseState(&mouse_x, &mouse_y);
+            if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
+                int delta_x = mouse_x - prev_mouse_x;
+                int delta_y = mouse_y - prev_mouse_y;
+                cam_yaw += float(-delta_x) * rot_scale;
+                cam_pitch += float(-delta_y) * rot_scale;
+            }
+            prev_mouse_x = mouse_x;
+            prev_mouse_y = mouse_y;
+        }
+
         bgfx::touch(0);
-        const bx::Vec3 at = {0.0f, 1.0f, 0.0f};
-        const bx::Vec3 eye = {5.0f, 2.0f, -6.0f};
 
         // Set view and projection matrix for view 0.
         {
+            float cam_rotation[16];
+            bx::mtxRotateXYZ(cam_rotation, cam_pitch, cam_yaw, 0.0f);
+
+            float cam_translation[16];
+            bx::mtxTranslate(cam_translation, 0.0f, 0.0f, -5.0f);
+
+            float cam_transform[16];
+            bx::mtxMul(cam_transform, cam_translation, cam_rotation);
+
             float view[16];
-            bx::mtxLookAt(view, eye, at);
+            bx::mtxInverse(view, cam_transform);
 
             float proj[16];
             bx::mtxProj(proj, 60.0f, float(width) / float(height), 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
             bgfx::setViewTransform(0, view, proj);
-
-            // Set view 0 default viewport.
-            bgfx::setViewRect(0, 0, 0, uint16_t(width), uint16_t(height));
         }
 
         glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), {1.0f, 0.0f, 0.0f});
