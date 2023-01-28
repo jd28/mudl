@@ -31,4 +31,5 @@ include_directories(SYSTEM external/rollnw/external)
 add_subdirectory(external/bgfx)
 add_subdirectory(external/rollnw)
 
+add_subdirectory(data)
 add_subdirectory(src)

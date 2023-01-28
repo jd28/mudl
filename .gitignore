@@ -16,8 +16,6 @@ CMakeLists.txt.user
 # bin/
 bin/*
 !bin/.gitkeep
-!bin/dire_cat.mdl
-!bin/c_cat_dire.tga
 
 # docs
 **/docs/_build/

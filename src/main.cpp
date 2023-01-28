@@ -11,16 +11,28 @@
 #include <bx/mutex.h>
 #include <bx/thread.h>
 #include <glm/gtx/normal.hpp>
+#include <nw/kernel/Kernel.hpp>
+#include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Image.hpp>
 #include <nw/model/Mdl.hpp>
 
 #include <string>
 #include <vector>
 
+using namespace std::literals;
+
 int counter = 0;
 int main(int argc, char** argv)
 {
     nw::init_logger(argc, argv);
+    auto info = nw::probe_nwn_install();
+    nw::kernel::config().initialize({
+        info.version,
+        info.install,
+        info.user,
+    });
+    nw::kernel::resman().add_container(new nw::Directory("assets"));
+    nw::kernel::services().start();
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL could not initialize. SDL_Error: %s\n", SDL_GetError());
@@ -95,10 +107,14 @@ int main(int argc, char** argv)
     bgfx::setViewRect(0, 0, 0, width, height);
 
     // Proof of concept, one hardcoded model and texture, obviously this is stupid.
-    nw::model::Mdl mdl{std::string("dire_cat.mdl")};
+    auto bytes = nw::kernel::resman().demand({"dire_cat"sv, nw::ResourceType::mdl});
+    if (bytes.size() == 0) {
+        LOG_F(FATAL, "Failed to load model");
+    }
+    nw::model::Mdl mdl{std::move(bytes)};
     if (!mdl.valid()) { return 1; }
 
-    nw::Image texture{"c_cat_dire.tga"};
+    nw::Image texture{nw::kernel::resman().demand({"c_cat_dire"sv, nw::ResourceType::tga})};
     auto size = texture.channels() * texture.height() * texture.width();
     auto mem = bgfx::makeRef(texture.data(), size);
     auto tex_handle = bgfx::createTexture2D(uint16_t(texture.width()), uint16_t(texture.height()), false, 1,
