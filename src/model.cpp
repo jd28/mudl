@@ -62,11 +62,10 @@ void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
 static inline Node* load_node(nw::model::Node* node)
 {
     Node* result = nullptr;
-
     if (node->type & nw::model::NodeFlags::mesh) {
-        Mesh* mesh = new Mesh;
         auto n = static_cast<nw::model::TrimeshNode*>(node);
         if (!n->indices.empty()) {
+            Mesh* mesh = new Mesh;
             LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
             auto index_mem = bgfx::makeRef(n->indices.data(), uint32_t(n->indices.size() * sizeof(uint16_t)));
             mesh->ibh_ = bgfx::createIndexBuffer(index_mem);
@@ -102,8 +101,10 @@ static inline Node* load_node(nw::model::Node* node)
             } else {
                 LOG_F(FATAL, "Failed to bind texture");
             }
+            result = mesh;
+        } else {
+            LOG_F(ERROR, "No vertex indicies");
         }
-        result = mesh;
     } else {
         result = new Node;
     }
@@ -117,6 +118,9 @@ static inline Node* load_node(nw::model::Node* node)
 Node* load_model(nw::model::Model* mdl)
 {
     auto root = mdl->find("rootdummy");
-    if (!root) { return nullptr; }
+    if (!root) {
+        LOG_F(INFO, "No root dummy");
+        return nullptr;
+    }
     return load_node(root);
 }

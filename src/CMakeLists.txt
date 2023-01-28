@@ -5,6 +5,7 @@ add_executable(mudl
     main.cpp
     model.cpp
     util.cpp
+    ModelCache.cpp
     TextureCache.cpp
 
     bgfx-imgui/imgui_impl_bgfx.cpp

@@ -1,10 +1,10 @@
 #include "model.hpp"
 
-#include "util.hpp"
-
+#include "ModelCache.hpp"
 #include "bgfx-imgui/imgui_impl_bgfx.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
+#include "util.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
@@ -25,7 +25,8 @@
 
 using namespace std::literals;
 
-int counter = 0;
+static ModelCache s_models;
+
 int main(int argc, char** argv)
 {
     nw::init_logger(argc, argv);
@@ -123,15 +124,8 @@ int main(int argc, char** argv)
         0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xD3D3D3FF, 1.0f, 0);
     bgfx::setViewRect(0, 0, 0, width, height);
 
-    // Proof of concept, one hardcoded model and texture, obviously this is stupid.
-    auto bytes = nw::kernel::resman().demand({"dire_cat"sv, nw::ResourceType::mdl});
-    if (bytes.size() == 0) {
-        LOG_F(FATAL, "Failed to load model");
-    }
-    nw::model::Mdl mdl{std::move(bytes)};
-    if (!mdl.valid()) { return 1; }
-
-    auto model = load_model(&mdl.model);
+    // Proof of concept, one hardcoded model, obviously this is stupid.
+    auto model = s_models.load("dire_cat");
     if (!model) {
         LOG_F(FATAL, "uanble to load model.");
     }
