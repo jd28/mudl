@@ -36,7 +36,7 @@ void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
     }
 
     auto trans = glm::translate(_mtx, position_);
-    trans = glm::rotate(trans, rotation_[3], {rotation_[0], rotation_[1], rotation_[2]});
+    // trans = glm::rotate(trans, rotation_[3], {rotation_[0], rotation_[1], rotation_[2]});
     trans = glm::scale(trans, scale_);
 
     // LOG_F(INFO, "Submitting node: {}", orig->name);

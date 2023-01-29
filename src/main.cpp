@@ -19,6 +19,7 @@
 #include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Image.hpp>
 #include <nw/model/Mdl.hpp>
+#include <stb/stb_image.h>
 
 #include <string>
 #include <vector>
@@ -29,6 +30,14 @@ static ModelCache s_models;
 
 int main(int argc, char** argv)
 {
+    if (argc < 2) {
+        LOG_F(ERROR, "usage: mudl <model resref>");
+        return 1;
+    }
+
+    // NWN Textures are pre-flipped, bgfx flips them, I guess, so we got to flip back before the flip..
+    stbi_set_flip_vertically_on_load(true);
+
     nw::init_logger(argc, argv);
     auto info = nw::probe_nwn_install();
     nw::kernel::config().initialize({
@@ -105,11 +114,11 @@ int main(int argc, char** argv)
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
        // BX_PLATFORM_EMSCRIPTEN
 
-    nw::ByteArray vs_mudl_bytes = nw::ByteArray::from_file("vs_mudl.bin");
+    nw::ByteArray vs_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "vs_mudl.bin");
     if (vs_mudl_bytes.size() == 0) {
         return 1;
     }
-    nw::ByteArray fs_mudl_bytes = nw::ByteArray::from_file("fs_mudl.bin");
+    nw::ByteArray fs_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "fs_mudl.bin");
     if (fs_mudl_bytes.size() == 0) {
         return 1;
     }
@@ -125,7 +134,7 @@ int main(int argc, char** argv)
     bgfx::setViewRect(0, 0, 0, width, height);
 
     // Proof of concept, one hardcoded model, obviously this is stupid.
-    auto model = s_models.load("dire_cat");
+    auto model = s_models.load(argv[1]);
     if (!model) {
         LOG_F(FATAL, "uanble to load model.");
     }

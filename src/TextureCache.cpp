@@ -9,15 +9,15 @@ std::optional<bgfx::TextureHandle> TextureCache::load(std::string_view resref,
     auto it = map_.find(needle);
     if (it == std::end(map_)) {
         // Create
-        auto bytes = nw::kernel::resman().demand({resref, type});
+        auto [bytes, ty] = nw::kernel::resman().demand_in_order(resref, {type});
         if (bytes.size() == 0) {
-            LOG_F(ERROR, "Failed to find texture: {} of type: {}", resref, type);
+            LOG_F(ERROR, "Failed to find texture: {} of type: {}", resref, ty);
             // [TODO] return placeholder texture
             return {};
         }
-        auto img = std::make_unique<nw::Image>(std::move(bytes));
+        auto img = std::make_unique<nw::Image>(std::move(bytes), ty == nw::ResourceType::dds);
         if (!img->valid()) {
-            LOG_F(ERROR, "Failed to load image: {} of type: {}", resref, type);
+            LOG_F(ERROR, "Failed to load image: {} of type: {}", resref, ty);
             // [TODO] return placeholder texture
             return {};
         }
