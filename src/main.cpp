@@ -6,8 +6,6 @@
 #include "sdl-imgui/imgui_impl_sdl.h"
 #include "util.hpp"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_syswm.h>
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include <bx/bx.h>
@@ -20,6 +18,9 @@
 #include <nw/legacy/Image.hpp>
 #include <nw/model/Mdl.hpp>
 #include <stb/stb_image.h>
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 
 #include <string>
 #include <vector>
