@@ -186,7 +186,7 @@ int main(int argc, char** argv)
             bx::mtxRotateXYZ(cam_rotation, cam_pitch, cam_yaw, 0.0f);
 
             float cam_translation[16];
-            bx::mtxTranslate(cam_translation, 0.0f, 0.0f, -5.0f);
+            bx::mtxTranslate(cam_translation, 0.0f, -0.5f, -1.5f);
 
             float cam_transform[16];
             bx::mtxMul(cam_transform, cam_translation, cam_rotation);

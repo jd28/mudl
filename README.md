@@ -12,7 +12,7 @@ $ cmake --preset=<macos|linux|windows>
 $ cmake --build --preset defaul
 ```
 
-Build the shaders (only for Metal so far, but this is the gist):
+Build the shaders macOS/Metal, Linux/OpenGL/Vulkan:
 ```
 $ ./build-shaders.sh
 ```
@@ -39,6 +39,9 @@ respectively.
 
 ## macOS - Metal - Dire Tiger (No Toenails)
 ![macOS - Metal - Dire Tiger (No Toenails)](screenshots/screen_apple_20230127.png)
+
+## Linux - Vulkan - Evil Aribeth (Some HIDPI Issues)
+![Linux - Vulkan - Evil Aribeth](screenshots/screen_linux_20230129.png)
 
 # Tech
 - bgfx
