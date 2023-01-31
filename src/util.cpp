@@ -1,7 +1,10 @@
 #include "util.hpp"
 
+#include <nw/log.hpp>
+
 #include <bgfx/bgfx.h>
 #include <bx/bx.h>
+#include <glm/gtc/type_ptr.hpp>
 
 std::filesystem::path get_shader_path()
 {
@@ -43,4 +46,18 @@ std::filesystem::path get_shader_path()
         break;
     }
     return path;
+}
+
+void log_matrix(const float* mtx)
+{
+    LOG_F(INFO, "\n[{}, {}, {}, {}]\n[{}, {}, {}, {}]\n[{}, {}, {}, {}]\n[{}, {}, {}, {}]",
+        mtx[0], mtx[1], mtx[2], mtx[3],
+        mtx[4], mtx[5], mtx[6], mtx[7],
+        mtx[8], mtx[9], mtx[10], mtx[11],
+        mtx[12], mtx[13], mtx[14], mtx[15]);
+}
+
+void log_matrix(const glm::mat4& mtx)
+{
+    log_matrix(glm::value_ptr(mtx));
 }

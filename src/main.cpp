@@ -12,7 +12,9 @@
 #include <bx/math.h>
 #include <bx/mutex.h>
 #include <bx/thread.h>
-#include <glm/gtx/normal.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Image.hpp>
@@ -182,21 +184,12 @@ int main(int argc, char** argv)
 
         // Set view and projection matrix for view 0.
         {
-            float cam_rotation[16];
-            bx::mtxRotateXYZ(cam_rotation, cam_pitch, cam_yaw, 0.0f);
-
-            float cam_translation[16];
-            bx::mtxTranslate(cam_translation, 0.0f, -0.5f, -1.5f);
-
-            float cam_transform[16];
-            bx::mtxMul(cam_transform, cam_translation, cam_rotation);
-
-            float view[16];
-            bx::mtxInverse(view, cam_transform);
-
-            float proj[16];
-            bx::mtxProj(proj, 60.0f, float(width) / float(height), 0.1f, 100.0f, bgfx::getCaps()->homogeneousDepth);
-            bgfx::setViewTransform(0, view, proj);
+            auto cam_rot = glm::yawPitchRoll(cam_yaw, cam_pitch, 0.0f);
+            auto cam_translate = glm::translate(glm::mat4{1.0f}, {0.0f, -0.5f, -1.5f});
+            auto cam_trans = cam_translate * cam_rot;
+            auto view = glm::inverse(cam_trans);
+            auto proj = glm::perspectiveLH(glm::radians(60.f), float(width) / float(height), 0.1f, 100.0f);
+            bgfx::setViewTransform(0, glm::value_ptr(view), glm::value_ptr(proj));
         }
 
         glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), {1.0f, 0.0f, 0.0f});
