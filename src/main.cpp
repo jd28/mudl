@@ -1,6 +1,7 @@
 #include "model.hpp"
 
 #include "ModelCache.hpp"
+#include "TextureCache.hpp"
 #include "bgfx-imgui/imgui_impl_bgfx.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
@@ -30,6 +31,7 @@
 using namespace std::literals;
 
 static ModelCache s_models;
+TextureCache s_textures;
 
 int main(int argc, char** argv)
 {
@@ -104,6 +106,7 @@ int main(int argc, char** argv)
     bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
     bgfx_init.platformData = pd;
     bgfx::init(bgfx_init);
+    s_textures.load_placeholder();
 
     ImGui::CreateContext();
 

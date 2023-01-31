@@ -5,8 +5,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-static TextureCache textures;
-
+extern TextureCache s_textures;
 bgfx::VertexLayout Node::layout;
 
 void Node::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state)
@@ -95,7 +94,7 @@ static inline Node* load_node(nw::model::Node* node)
             mesh->rotation_ = glm::vec4{odata[0], odata[1], odata[2], odata[3]};
 
             // Force tga for now
-            auto tex = textures.load(n->bitmap, nw::ResourceType::tga);
+            auto tex = s_textures.load(n->bitmap, nw::ResourceType::tga);
             if (tex) {
                 mesh->texture0 = *tex;
             } else {
