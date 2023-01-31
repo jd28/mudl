@@ -16,14 +16,13 @@ void TextureCache::load_placeholder()
     place_holder_ = handle;
 }
 
-std::optional<bgfx::TextureHandle> TextureCache::load(std::string_view resref,
-    nw::ResourceType::type type)
+std::optional<bgfx::TextureHandle> TextureCache::load(std::string_view resref)
 {
     absl::string_view needle{resref.data(), resref.size()};
     auto it = map_.find(needle);
     if (it == std::end(map_)) {
         // Create
-        auto [bytes, ty] = nw::kernel::resman().demand_in_order(resref, {type});
+        auto [bytes, ty] = nw::kernel::resman().demand_in_order(resref, {nw::ResourceType::dds, nw::ResourceType::tga});
         if (bytes.size() == 0) {
             LOG_F(ERROR, "Failed to find texture: {} of type: {}", resref, ty);
             return place_holder_;

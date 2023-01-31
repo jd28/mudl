@@ -16,8 +16,7 @@ struct TexturePayload {
 struct TextureCache {
     void load_placeholder();
 
-    std::optional<bgfx::TextureHandle> load(std::string_view resref,
-        nw::ResourceType::type type = nw::ResourceType::texture);
+    std::optional<bgfx::TextureHandle> load(std::string_view resref);
     absl::flat_hash_map<std::string, TexturePayload> map_;
 
     bgfx::TextureHandle place_holder_;

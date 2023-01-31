@@ -20,8 +20,12 @@ $ ./build-shaders.sh
 ## Usage
 
 ```
-cd bin/
-./mudl <resref of model, no extension>
+mudl <command> [<args>]
+
+Commands
+--------
+    extract     Extracts a model and its corresponding textures, material, txi files (maybe)
+    view        Open a model for viewing
 ```
 
 **mudl** should be able to find your NWN install and user directory.  If not set the

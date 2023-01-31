@@ -94,7 +94,7 @@ static inline Node* load_node(nw::model::Node* node)
             mesh->rotation_ = glm::vec4{odata[0], odata[1], odata[2], odata[3]};
 
             // Force tga for now
-            auto tex = s_textures.load(n->bitmap, nw::ResourceType::tga);
+            auto tex = s_textures.load(n->bitmap);
             if (tex) {
                 mesh->texture0 = *tex;
             } else {
@@ -116,10 +116,19 @@ static inline Node* load_node(nw::model::Node* node)
 
 Node* load_model(nw::model::Model* mdl)
 {
-    auto root = mdl->find("rootdummy");
-    if (!root) {
-        LOG_F(INFO, "No root dummy");
-        return nullptr;
+    if (mdl->classification == nw::model::ModelClass::character) {
+        auto root = mdl->find("rootdummy");
+        if (!root) {
+            LOG_F(INFO, "No root dummy");
+            return nullptr;
+        }
+        return load_node(root);
+    } else {
+        auto root = mdl->find(mdl->name);
+        if (!root) {
+            LOG_F(INFO, "No root dummy");
+            return nullptr;
+        }
+        return load_node(root);
     }
-    return load_node(root);
 }
