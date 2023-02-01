@@ -80,18 +80,18 @@ static inline Node* load_node(nw::model::Node* node)
 
             mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
 
-            auto [pk, pdata] = n->get_controller(nw::model::ControllerType::Position);
-            if (pdata.size() != 3) {
-                LOG_F(FATAL, "Wrong size position: {}", pdata.size());
+            auto key = n->get_controller(nw::model::ControllerType::Position);
+            if (key.data.size() != 3) {
+                LOG_F(FATAL, "Wrong size position: {}", key.data.size());
             }
-            mesh->position_ = glm::vec3{pdata[0], pdata[1], pdata[2]};
+            mesh->position_ = glm::vec3{key.data[0], key.data[1], key.data[2]};
 
-            auto [ok, odata] = n->get_controller(nw::model::ControllerType::Orientation);
-            if (odata.size() != 4) {
-                LOG_F(FATAL, "Wrong size orientation: {}", odata.size());
+            key = n->get_controller(nw::model::ControllerType::Orientation);
+            if (key.data.size() != 4) {
+                LOG_F(FATAL, "Wrong size orientation: {}", key.data.size());
             }
             mesh->orig = n;
-            mesh->rotation_ = glm::vec4{odata[0], odata[1], odata[2], odata[3]};
+            mesh->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
 
             // Force tga for now
             auto tex = s_textures.load(n->bitmap);
