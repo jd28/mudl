@@ -10,9 +10,7 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include <bx/bx.h>
-#include <bx/math.h>
-#include <bx/mutex.h>
-#include <bx/thread.h>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -82,6 +80,26 @@ int main(int argc, char** argv)
                 auto n = static_cast<const nw::model::TrimeshNode*>(node.get());
                 if (n->bitmap.size()) {
                     auto re = std::regex{n->bitmap + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
+                    nw::kernel::resman().extract(re, ".");
+                }
+
+                if (n->materialname.size()) {
+                    auto re = std::regex{n->materialname + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
+                    nw::kernel::resman().extract(re, ".");
+                }
+
+                if (n->textures[0].size()) {
+                    auto re = std::regex{n->textures[0] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
+                    nw::kernel::resman().extract(re, ".");
+                }
+
+                if (n->textures[1].size()) {
+                    auto re = std::regex{n->textures[1] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
+                    nw::kernel::resman().extract(re, ".");
+                }
+
+                if (n->textures[2].size()) {
+                    auto re = std::regex{n->textures[2] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
                     nw::kernel::resman().extract(re, ".");
                 }
             }
