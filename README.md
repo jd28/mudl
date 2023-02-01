@@ -17,6 +17,11 @@ Build the shaders macOS/Metal, Linux/OpenGL/Vulkan:
 $ ./build-shaders.sh
 ```
 
+```
+cd bin/
+./mudl <command> [<args>]
+```
+
 ## Usage
 
 ```
@@ -34,7 +39,6 @@ respectively.
 
 ## Limitations
 
-- There is an issue with dds textures.  rollnw can load it, but it doesn't get applied correctly
 - This is limited to fairly basic models from the 1.69, which is basically all the ones that come
   with NWN:EE
 - No emitters, danglymesh, skinmesh, etc.
