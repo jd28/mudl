@@ -116,19 +116,10 @@ static inline Node* load_node(nw::model::Node* node)
 
 Node* load_model(nw::model::Model* mdl)
 {
-    if (mdl->classification == nw::model::ModelClass::character) {
-        auto root = mdl->find("rootdummy");
-        if (!root) {
-            LOG_F(INFO, "No root dummy");
-            return nullptr;
-        }
-        return load_node(root);
-    } else {
-        auto root = mdl->find(mdl->name);
-        if (!root) {
-            LOG_F(INFO, "No root dummy");
-            return nullptr;
-        }
-        return load_node(root);
+    auto root = mdl->find(std::regex(mdl->name));
+    if (!root) {
+        LOG_F(INFO, "No root dummy");
+        return nullptr;
     }
+    return load_node(root);
 }

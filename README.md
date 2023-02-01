@@ -42,6 +42,7 @@ respectively.
 - This is limited to fairly basic models from the 1.69, which is basically all the ones that come
   with NWN:EE
 - No emitters, danglymesh, skinmesh, etc.
+- No animations.. yet.
 
 # Screens
 
