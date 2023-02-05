@@ -1,24 +1,28 @@
 #pragma once
 
 #include <absl/container/flat_hash_map.h>
-#include <bgfx/bgfx.h>
 #include <nw/legacy/Image.hpp>
+#include <nw/legacy/Plt.hpp>
 #include <nw/resources/ResourceType.hpp>
 
 #include <optional>
+#include <variant>
 
 struct TexturePayload {
-    std::unique_ptr<nw::Image> image_;
-    bgfx::TextureHandle handle_;
+    std::variant<std::unique_ptr<nw::Image>, std::unique_ptr<nw::Plt>> image_;
+    unsigned int handle_;
+    bool is_plt = false;
     uint32_t refcount_ = 0;
 };
 
 struct TextureCache {
     void load_placeholder();
+    void load_palette_texture();
 
-    std::optional<bgfx::TextureHandle> load(std::string_view resref);
+    std::optional<std::pair<unsigned int, bool>> load(std::string_view resref);
     absl::flat_hash_map<std::string, TexturePayload> map_;
 
-    bgfx::TextureHandle place_holder_;
+    unsigned int place_holder_;
     std::unique_ptr<nw::Image> place_holder_image_;
+    unsigned int palette_texture_;
 };

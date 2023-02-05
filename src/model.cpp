@@ -1,57 +1,45 @@
 #include "model.hpp"
 
 #include "TextureCache.hpp"
+#include "shader.hpp"
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-extern TextureCache s_textures;
-bgfx::VertexLayout Node::layout;
+#include <glad/glad.h>
 
-void Node::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state)
+extern TextureCache s_textures;
+
+void Node::draw(Shader& shader, const glm::mat4x4& mtx)
 {
-    auto trans = glm::translate(_mtx, position_);
+    auto trans = glm::translate(mtx, position_);
 
     for (auto child : children_) {
-        child->submit(_id, _program, trans, _state);
+        child->draw(shader, trans);
     }
 }
 
-// == Mesh ===================================================================
-// ============================================================================
+// // == Mesh ===================================================================
+// // ============================================================================
 
-void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4& _mtx, uint64_t _state)
+void Mesh::draw(Shader& shader, const glm::mat4x4& mtx)
 {
-    static bgfx::UniformHandle s_texColor = bgfx::createUniform("s_texColor", bgfx::UniformType::Sampler);
-
-    if (BGFX_STATE_MASK == _state) {
-        _state = 0
-            | BGFX_STATE_WRITE_RGB
-            | BGFX_STATE_WRITE_A
-            | BGFX_STATE_WRITE_Z
-            | BGFX_STATE_DEPTH_TEST_LESS
-            | BGFX_STATE_CULL_CCW
-            | BGFX_STATE_MSAA;
-    }
-
-    auto trans = glm::translate(_mtx, position_);
+    auto trans = glm::translate(mtx, position_);
     // trans = glm::rotate(trans, rotation_[3], {rotation_[0], rotation_[1], rotation_[2]});
     trans = glm::scale(trans, scale_);
 
-    // LOG_F(INFO, "Submitting node: {}", orig->name);
+    shader.set_uniform("model", trans);
 
-    bgfx::setTransform(&trans[0][0]);
-    bgfx::setState(_state);
-    bgfx::setVertexBuffer(0, vbh_);
-    bgfx::setIndexBuffer(ibh_);
-    bgfx::setTexture(0, s_texColor, texture0);
-    bgfx::submit(
-        _id, _program, 0, BGFX_DISCARD_INDEX_BUFFER | BGFX_DISCARD_VERTEX_STREAMS);
+    glBindTexture(GL_TEXTURE_2D, texture0);
+    glActiveTexture(GL_TEXTURE0);
 
-    bgfx::discard();
+    glBindVertexArray(vao_);
+    glDrawElements(GL_TRIANGLES, orig->indices.size(), GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(0);
 
     for (auto child : children_) {
-        child->submit(_id, _program, trans, _state);
+        child->draw(shader, trans);
     }
 }
 
@@ -66,19 +54,40 @@ static inline Node* load_node(nw::model::Node* node)
         if (!n->indices.empty()) {
             Mesh* mesh = new Mesh;
             LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
-            auto index_mem = bgfx::makeRef(n->indices.data(), uint32_t(n->indices.size() * sizeof(uint16_t)));
-            mesh->ibh_ = bgfx::createIndexBuffer(index_mem);
 
-            auto mem = bgfx::alloc(uint32_t(n->vertices.size() * Node::layout.getStride()));
+            glGenVertexArrays(1, &mesh->vao_);
+            glGenBuffers(1, &mesh->vbo_);
+            glGenBuffers(1, &mesh->ebo_);
 
-            uint32_t i = 0;
-            for (const auto& v : n->vertices) {
-                bgfx::vertexPack(&v.position.x, false, bgfx::Attrib::Position, Node::layout, mem->data, i);
-                bgfx::vertexPack(&v.tex_coords.x, false, bgfx::Attrib::TexCoord0, Node::layout, mem->data, i);
-                ++i;
-            }
+            glBindVertexArray(mesh->vao_);
+            glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_);
 
-            mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
+            glBufferData(GL_ARRAY_BUFFER, n->vertices.size() * sizeof(nw::model::Vertex), &n->vertices[0],
+                GL_STATIC_DRAW);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo_);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, n->indices.size() * sizeof(uint16_t),
+                &n->indices[0], GL_STATIC_DRAW);
+
+            // vertex positions
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(nw::model::Vertex), (void*)0);
+
+            // vertex texture coords
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(nw::model::Vertex),
+                (void*)offsetof(nw::model::Vertex, tex_coords));
+
+            // vertex normals
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(nw::model::Vertex),
+                (void*)offsetof(nw::model::Vertex, normal));
+
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(nw::model::Vertex),
+                (void*)offsetof(nw::model::Vertex, tangent));
+
+            glBindVertexArray(0);
 
             auto key = n->get_controller(nw::model::ControllerType::Position);
             if (key.data.size() != 3) {
@@ -96,7 +105,8 @@ static inline Node* load_node(nw::model::Node* node)
             // Force tga for now
             auto tex = s_textures.load(n->bitmap);
             if (tex) {
-                mesh->texture0 = *tex;
+                mesh->texture0 = tex->first;
+                mesh->texture0_is_plt = tex->second;
             } else {
                 LOG_F(FATAL, "Failed to bind texture");
             }
@@ -117,6 +127,7 @@ static inline Node* load_node(nw::model::Node* node)
 Node* load_model(nw::model::Model* mdl)
 {
     auto root = mdl->find(std::regex(mdl->name));
+    LOG_F(INFO, "{}", root->children.size());
     if (!root) {
         LOG_F(INFO, "No root dummy");
         return nullptr;

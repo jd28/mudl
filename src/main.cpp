@@ -2,18 +2,13 @@
 
 #include "ModelCache.hpp"
 #include "TextureCache.hpp"
-#include "bgfx-imgui/imgui_impl_bgfx.h"
-#include "imgui.h"
-#include "sdl-imgui/imgui_impl_sdl.h"
+#include "shader.hpp"
 #include "util.hpp"
-
-#include <bgfx/bgfx.h>
-#include <bgfx/platform.h>
-#include <bx/bx.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
+
 #include <nw/kernel/Kernel.hpp>
 #include <nw/kernel/Resources.hpp>
 #include <nw/legacy/Image.hpp>
@@ -21,10 +16,14 @@
 #include <nw/util/string.hpp>
 #include <stb/stb_image.h>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_syswm.h>
+#include "imgui.h"
+
+#include <glad/glad.h>
+
+#include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <limits>
 #include <regex>
 #include <string>
 #include <vector>
@@ -48,6 +47,73 @@ auto extract_usage = R"eof(usage: mudl extract <resref>
 
 auto view_usage = R"eof(usage: mudl view <resref>
 )eof";
+
+void framebuffer_size_callback(GLFWwindow*, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+double prev_mouse_x = 0;
+double prev_mouse_y = 0;
+float cam_pitch = 0.0f;
+float cam_yaw = 0.0f;
+float rot_scale = 0.01f;
+
+glm::vec3 cameraPos = glm::vec3(0.0f, -0.5f, 2.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    const float cameraSpeed = 0.05f; // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+bool firstMouse = true;
+float lastX = 400, lastY = 300;
+float yaw, pitch;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+}
 
 int main(int argc, char** argv)
 {
@@ -111,164 +177,65 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        // NWN Textures are pre-flipped, bgfx flips them, I guess, so we got to flip back before the flip..
-        stbi_set_flip_vertically_on_load(true);
-
-        if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-            printf("SDL could not initialize. SDL_Error: %s\n", SDL_GetError());
-            return 1;
-        }
-
         const int width = 800;
         const int height = 600;
-        SDL_Window* window = SDL_CreateWindow(
-            argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-            height, SDL_WINDOW_SHOWN);
 
-        if (window == nullptr) {
-            printf("Window could not be created. SDL_Error: %s\n", SDL_GetError());
-            return 1;
+        glfwInit();
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+        GLFWwindow* window = glfwCreateWindow(width, height, "tst", NULL, NULL);
+        if (window == NULL) {
+            std::cout << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return -1;
         }
 
-        Node::layout.begin()
-            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
-            .end();
+        glfwMakeContextCurrent(window);
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-#if !BX_PLATFORM_EMSCRIPTEN
-        SDL_SysWMinfo wmi;
-        SDL_VERSION(&wmi.version);
-        if (!SDL_GetWindowWMInfo(window, &wmi)) {
-            printf(
-                "SDL_SysWMinfo could not be retrieved. SDL_Error: %s\n",
-                SDL_GetError());
-            return 1;
+        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            return -1;
         }
-        bgfx::renderFrame(); // single threaded mode
-#endif                       // !BX_PLATFORM_EMSCRIPTEN
+        glEnable(GL_DEPTH_TEST);
 
-        bgfx::PlatformData pd{};
-#if BX_PLATFORM_WINDOWS
-        pd.nwh = wmi.info.win.window;
-#elif BX_PLATFORM_OSX
-        pd.nwh = wmi.info.cocoa.window;
-#elif BX_PLATFORM_LINUX
-        pd.ndt = wmi.info.x11.display;
-        pd.nwh = (void*)(uintptr_t)wmi.info.x11.window;
-#elif BX_PLATFORM_EMSCRIPTEN
-        pd.nwh = (void*)"#canvas";
-#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
-       // BX_PLATFORM_EMSCRIPTEN
-
-        bgfx::Init bgfx_init;
-        bgfx_init.type = bgfx::RendererType::Count; // auto choose renderer
-        bgfx_init.resolution.width = width;
-        bgfx_init.resolution.height = height;
-        bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
-        bgfx_init.platformData = pd;
-        bgfx::init(bgfx_init);
         s_textures.load_placeholder();
+        // s_textures.load_palette_texture();
 
-        ImGui::CreateContext();
-
-        ImGui_Implbgfx_Init(255);
-#if BX_PLATFORM_WINDOWS
-        ImGui_ImplSDL2_InitForD3D(window);
-#elif BX_PLATFORM_OSX
-        ImGui_ImplSDL2_InitForMetal(window);
-#elif BX_PLATFORM_LINUX || BX_PLATFORM_EMSCRIPTEN
-        ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
-#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
-       // BX_PLATFORM_EMSCRIPTEN
-
-        nw::ByteArray vs_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "vs_mudl.bin");
-        if (vs_mudl_bytes.size() == 0) {
-            return 1;
-        }
-        nw::ByteArray fs_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "fs_mudl.bin");
-        if (fs_mudl_bytes.size() == 0) {
+        auto node = s_models.load(argv[2]);
+        if (!node) {
+            LOG_F(ERROR, "failed to load model {}", argv[2]);
+            glfwTerminate();
             return 1;
         }
 
-        auto vs_mudl_shd_handle = bgfx::createShader(bgfx::makeRef(vs_mudl_bytes.data(),
-            uint32_t(vs_mudl_bytes.size())));
-        auto fs_mudl_shd_handle = bgfx::createShader(bgfx::makeRef(fs_mudl_bytes.data(),
-            uint32_t(fs_mudl_bytes.size())));
+        Shader shader{"vs_mudl.glsl", "fs_mudl.glsl"};
 
-        auto program = bgfx::createProgram(vs_mudl_shd_handle, fs_mudl_shd_handle, true);
-        bgfx::setViewClear(
-            0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xD3D3D3FF, 1.0f, 0);
-        bgfx::setViewRect(0, 0, 0, width, height);
+        while (!glfwWindowShouldClose(window)) {
+            processInput(window);
 
-        // Proof of concept, one hardcoded model, obviously this is stupid.
-        auto model = s_models.load(argv[2]);
-        if (!model) {
-            LOG_F(FATAL, "uanble to load model.");
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            shader.use();
+            auto view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+            auto proj = glm::perspective(glm::radians(60.f), float(width) / float(height), 0.1f, 100.0f);
+            shader.set_uniform("view", view);
+            shader.set_uniform("projection", proj);
+
+            glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), {0.0f, 0.0f, 1.0f});
+            mtx = glm::rotate(mtx, glm::radians(90.0f), {1.0f, 0.0f, 0.0f});
+            //  mtx = glm::rotate(mtx, glm::radians(90.0f), {.0f, 0.0f, 0.0f});
+            node->draw(shader, mtx);
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
         }
 
-        int prev_mouse_x = 0;
-        int prev_mouse_y = 0;
-        float cam_pitch = 0.0f;
-        float cam_yaw = 0.0f;
-        float rot_scale = 0.01f;
-
-        bool exit = false;
-        while (!exit) {
-            for (SDL_Event currentEvent; SDL_PollEvent(&currentEvent) != 0;) {
-                ImGui_ImplSDL2_ProcessEvent(&currentEvent);
-                if (currentEvent.type == SDL_QUIT) {
-                    exit = true;
-                    break;
-                }
-            }
-
-            ImGui_Implbgfx_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
-
-            ImGui::NewFrame();
-            ImGui::ShowDemoWindow(); // your drawing here
-            ImGui::Render();
-            ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
-
-            if (!ImGui::GetIO().WantCaptureMouse) {
-                // simple input code for orbit camera
-                int mouse_x, mouse_y;
-                const int buttons = SDL_GetMouseState(&mouse_x, &mouse_y);
-                if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
-                    int delta_x = mouse_x - prev_mouse_x;
-                    int delta_y = mouse_y - prev_mouse_y;
-                    cam_yaw += float(-delta_x) * rot_scale;
-                    cam_pitch += float(-delta_y) * rot_scale;
-                }
-                prev_mouse_x = mouse_x;
-                prev_mouse_y = mouse_y;
-            }
-
-            bgfx::touch(0);
-
-            // Set view and projection matrix for view 0.
-            {
-                auto cam_rot = glm::yawPitchRoll(cam_yaw, cam_pitch, 0.0f);
-                auto cam_translate = glm::translate(glm::mat4{1.0f}, {0.0f, -0.5f, -1.5f});
-                auto cam_trans = cam_translate * cam_rot;
-                auto view = glm::inverse(cam_trans);
-                auto proj = glm::perspectiveLH(glm::radians(60.f), float(width) / float(height), 0.1f, 100.0f);
-                bgfx::setViewTransform(0, glm::value_ptr(view), glm::value_ptr(proj));
-            }
-
-            glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), {1.0f, 0.0f, 0.0f});
-            model->submit(0, program, mtx);
-
-            bgfx::frame();
-        }
-
-        bgfx::shutdown();
-
-        while (bgfx::RenderFrame::NoContext != bgfx::renderFrame()) {
-        };
-
-        SDL_DestroyWindow(window);
-        SDL_Quit();
+        glfwTerminate();
     } else {
         std::cout << usage;
         return 1;
