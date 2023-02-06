@@ -4,6 +4,14 @@
 
 #include <glad/glad.h>
 
+#define CHECK_GL_ERRORS()                          \
+    do {                                           \
+        auto err = glGetError();                   \
+        if (err) {                                 \
+            LOG_F(ERROR, "openGL error: {}", err); \
+        }                                          \
+    } while (0)
+
 std::pair<unsigned int, bool> load_texture(std::string_view resref)
 {
 
@@ -88,22 +96,28 @@ void TextureCache::load_placeholder()
 
 void TextureCache::load_palette_texture()
 {
-    unsigned int texture = std::numeric_limits<unsigned int>::max();
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, 256, 256, 10);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-    nw::ByteArray bytes;
-    for (uint8_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         auto img = nw::kernel::resman().palette_texture(static_cast<nw::PltLayer>(i));
-        bytes.append(img->data(), 4 * img->height() * img->width());
+
+        unsigned int texture = std::numeric_limits<unsigned int>::max();
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        // set the texture wrapping/filtering options (on the currently bound texture object)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        auto format = img->channels() == 4 ? GL_RGBA : GL_RGB;
+
+        glTexImage2D(GL_TEXTURE_2D, 0, format,
+            img->width(),
+            img->height(), 0, format, GL_UNSIGNED_BYTE,
+            img->data());
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        palette_texture_[i] = texture;
     }
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, 256, 256, 10, GL_RGBA, GL_UNSIGNED_BYTE, bytes.data());
-    palette_texture_ = texture;
 }
 
 std::optional<std::pair<unsigned int, bool>> TextureCache::load(std::string_view resref)

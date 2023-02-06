@@ -51,9 +51,11 @@ void Mesh::draw(Shader& shader, const glm::mat4x4& mtx)
     glBindTexture(GL_TEXTURE_2D, texture0);
 
     if (texture0_is_plt) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, s_textures.palette_texture_);
-        CHECK_GL_ERRORS();
+        for (size_t i = 0; i < 10; ++i) {
+            glActiveTexture(GL_TEXTURE0 + 1 + i);
+            glBindTexture(GL_TEXTURE_2D, s_textures.palette_texture_[i]);
+            CHECK_GL_ERRORS();
+        }
     }
 
     glBindVertexArray(vao_);
