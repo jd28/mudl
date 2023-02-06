@@ -212,7 +212,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        Shader shader{"vs_mudl.glsl", "fs_mudl.glsl"};
+        Shader shader{"assets/vs_mudl.glsl", "assets/fs_plt_mudl.glsl"};
 
         while (!glfwWindowShouldClose(window)) {
             processInput(window);
