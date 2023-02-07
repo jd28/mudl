@@ -5,6 +5,7 @@
 #include <nw/legacy/Plt.hpp>
 #include <nw/resources/ResourceType.hpp>
 
+#include <array>
 #include <optional>
 #include <variant>
 
@@ -24,5 +25,5 @@ struct TextureCache {
 
     unsigned int place_holder_;
     std::unique_ptr<nw::Image> place_holder_image_;
-    unsigned int palette_texture_;
+    std::array<unsigned int, 10> palette_texture_;
 };

@@ -11,6 +11,14 @@
 
 extern TextureCache s_textures;
 
+#define CHECK_GL_ERRORS()                          \
+    do {                                           \
+        auto err = glGetError();                   \
+        if (err) {                                 \
+            LOG_F(ERROR, "openGL error: {}", err); \
+        }                                          \
+    } while (0)
+
 void Node::draw(Shader& shader, const glm::mat4x4& mtx)
 {
     auto trans = glm::translate(mtx, position_);
@@ -31,11 +39,28 @@ void Mesh::draw(Shader& shader, const glm::mat4x4& mtx)
 
     shader.set_uniform("model", trans);
 
-    glBindTexture(GL_TEXTURE_2D, texture0);
+    auto diffuse_loc = glGetUniformLocation(shader.id_, "ourTexture");
+    auto plt_tex_loc = glGetUniformLocation(shader.id_, "paletteTexture");
+
+    // Then bind the uniform samplers to texture units:
+    shader.use();
+    glUniform1i(diffuse_loc, 0);
+    glUniform1i(plt_tex_loc, 1);
+
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture0);
+
+    if (texture0_is_plt) {
+        for (size_t i = 0; i < 10; ++i) {
+            glActiveTexture(GL_TEXTURE0 + 1 + i);
+            glBindTexture(GL_TEXTURE_2D, s_textures.palette_texture_[i]);
+            CHECK_GL_ERRORS();
+        }
+    }
 
     glBindVertexArray(vao_);
     glDrawElements(GL_TRIANGLES, orig->indices.size(), GL_UNSIGNED_SHORT, 0);
+    CHECK_GL_ERRORS();
     glBindVertexArray(0);
 
     for (auto child : children_) {
@@ -102,7 +127,6 @@ static inline Node* load_node(nw::model::Node* node)
             mesh->orig = n;
             mesh->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
 
-            // Force tga for now
             auto tex = s_textures.load(n->bitmap);
             if (tex) {
                 mesh->texture0 = tex->first;

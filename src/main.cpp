@@ -203,7 +203,7 @@ int main(int argc, char** argv)
         glEnable(GL_DEPTH_TEST);
 
         s_textures.load_placeholder();
-        // s_textures.load_palette_texture();
+        s_textures.load_palette_texture();
 
         auto node = s_models.load(argv[2]);
         if (!node) {
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        Shader shader{"vs_mudl.glsl", "fs_mudl.glsl"};
+        Shader shader{"assets/vs_mudl.vert", "assets/fs_plt_mudl.frag"};
 
         while (!glfwWindowShouldClose(window)) {
             processInput(window);

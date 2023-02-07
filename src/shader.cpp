@@ -30,14 +30,14 @@ Shader::Shader(std::filesystem::path vertex, std::filesystem::path fragment)
     auto fs_bytes = nw::ByteArray::from_file(fragment);
     auto fs_string = std::string(fs_bytes.string_view());
     const char* fs_cchar = fs_string.c_str();
-    // vertex Shader
+    // fragment Shader
     fs = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fs, 1, &fs_cchar, NULL);
     glCompileShader(fs);
     glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fs, 512, NULL, infoLog);
-        LOG_F(ERROR, "SHADER::VERTEX::COMPILATION_FAILED: {}", infoLog);
+        LOG_F(ERROR, "SHADER::fragment::COMPILATION_FAILED: {}", infoLog);
     };
 
     // shader Program
