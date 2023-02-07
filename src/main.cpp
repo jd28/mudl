@@ -48,9 +48,12 @@ auto extract_usage = R"eof(usage: mudl extract <resref>
 auto view_usage = R"eof(usage: mudl view <resref>
 )eof";
 
-void framebuffer_size_callback(GLFWwindow*, int width, int height)
+int width = 800;
+int height = 600;
+
+void framebuffer_size_callback(GLFWwindow*, int w, int h)
 {
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, width = w, height = h);
 }
 
 double prev_mouse_x = 0;
@@ -176,9 +179,6 @@ int main(int argc, char** argv)
             std::cout << view_usage;
             return 1;
         }
-
-        const int width = 800;
-        const int height = 600;
 
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
