@@ -21,7 +21,13 @@ extern TextureCache s_textures;
 
 void Node::draw(Shader& shader, const glm::mat4x4& mtx)
 {
-    auto trans = glm::translate(mtx, position_);
+
+    glm::mat4x4 trans;
+    if (is_root_) {
+        trans = mtx;
+    } else {
+        trans = glm::translate(mtx, position_);
+    }
 
     for (auto child : children_) {
         child->draw(shader, trans);
@@ -36,16 +42,15 @@ void Mesh::draw(Shader& shader, const glm::mat4x4& mtx)
     auto trans = glm::translate(mtx, position_);
     // trans = glm::rotate(trans, rotation_[3], {rotation_[0], rotation_[1], rotation_[2]});
     trans = glm::scale(trans, scale_);
-
     shader.set_uniform("model", trans);
 
-    auto diffuse_loc = glGetUniformLocation(shader.id_, "ourTexture");
-    auto plt_tex_loc = glGetUniformLocation(shader.id_, "paletteTexture");
+    // auto diffuse_loc = glGetUniformLocation(shader.id_, "ourTexture");
+    // auto plt_tex_loc = glGetUniformLocation(shader.id_, "paletteTexture");
 
-    // Then bind the uniform samplers to texture units:
-    shader.use();
-    glUniform1i(diffuse_loc, 0);
-    glUniform1i(plt_tex_loc, 1);
+    // // Then bind the uniform samplers to texture units:
+    // shader.use();
+    // glUniform1i(diffuse_loc, 0);
+    // glUniform1i(plt_tex_loc, 1);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture0);
@@ -71,13 +76,15 @@ void Mesh::draw(Shader& shader, const glm::mat4x4& mtx)
 // == Model Loading ===========================================================
 // ============================================================================
 
-static inline Node* load_node(nw::model::Node* node)
+static inline Node* load_node(nw::model::Node* node, bool root)
 {
     Node* result = nullptr;
     if (node->type & nw::model::NodeFlags::mesh) {
         auto n = static_cast<nw::model::TrimeshNode*>(node);
         if (!n->indices.empty()) {
             Mesh* mesh = new Mesh;
+            mesh->orig = n;
+
             LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
 
             glGenVertexArrays(1, &mesh->vao_);
@@ -114,19 +121,6 @@ static inline Node* load_node(nw::model::Node* node)
 
             glBindVertexArray(0);
 
-            auto key = n->get_controller(nw::model::ControllerType::Position);
-            if (key.data.size() != 3) {
-                LOG_F(FATAL, "Wrong size position: {}", key.data.size());
-            }
-            mesh->position_ = glm::vec3{key.data[0], key.data[1], key.data[2]};
-
-            key = n->get_controller(nw::model::ControllerType::Orientation);
-            if (key.data.size() != 4) {
-                LOG_F(FATAL, "Wrong size orientation: {}", key.data.size());
-            }
-            mesh->orig = n;
-            mesh->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
-
             auto tex = s_textures.load(n->bitmap);
             if (tex) {
                 mesh->texture0 = tex->first;
@@ -142,8 +136,23 @@ static inline Node* load_node(nw::model::Node* node)
         result = new Node;
     }
 
+    result->is_root_ = root;
+
+    if (!root) {
+        auto key = node->get_controller(nw::model::ControllerType::Position);
+        if (key.data.size() != 3) {
+            LOG_F(FATAL, "Wrong size position: {}", key.data.size());
+        }
+        result->position_ = glm::vec3{key.data[0], key.data[1], key.data[2]};
+
+        key = node->get_controller(nw::model::ControllerType::Orientation);
+        if (key.data.size() != 4) {
+            LOG_F(FATAL, "Wrong size orientation: {}", key.data.size());
+        }
+        result->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
+    }
     for (auto child : node->children) {
-        result->children_.push_back(load_node(child));
+        result->children_.push_back(load_node(child, false));
     }
     return result;
 }
@@ -156,5 +165,5 @@ Node* load_model(nw::model::Model* mdl)
         LOG_F(INFO, "No root dummy");
         return nullptr;
     }
-    return load_node(root);
+    return load_node(root, true);
 }

@@ -24,8 +24,9 @@ struct Node {
 
     virtual void draw(Shader& shader, const glm::mat4x4& mtx);
 
-    glm::vec3 position_;
-    glm::vec4 rotation_;
+    bool is_root_ = true;
+    glm::vec3 position_{0.0f};
+    glm::vec4 rotation_{0.0f};
     glm::vec3 scale_ = glm::vec3(1.0);
     std::vector<Node*> children_;
 };

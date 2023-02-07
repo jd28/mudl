@@ -59,7 +59,7 @@ float cam_pitch = 0.0f;
 float cam_yaw = 0.0f;
 float rot_scale = 0.01f;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, -0.5f, 2.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 1.f, 2.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
         glfwMakeContextCurrent(window);
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
             std::cout << "Failed to initialize GLAD" << std::endl;
             return -1;
         }
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        Shader shader{"assets/vs_mudl.vert", "assets/fs_plt_mudl.frag"};
+        Shader shader{"assets/vs_mudl.vert", "assets/fs_mudl.frag"};
 
         while (!glfwWindowShouldClose(window)) {
             processInput(window);
@@ -228,7 +228,6 @@ int main(int argc, char** argv)
 
             glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), {0.0f, 0.0f, 1.0f});
             mtx = glm::rotate(mtx, glm::radians(90.0f), {1.0f, 0.0f, 0.0f});
-            //  mtx = glm::rotate(mtx, glm::radians(90.0f), {.0f, 0.0f, 0.0f});
             node->draw(shader, mtx);
 
             glfwSwapBuffers(window);
