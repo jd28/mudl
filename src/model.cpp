@@ -10,7 +10,13 @@ bgfx::VertexLayout Node::layout;
 
 void Node::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state)
 {
-    auto trans = glm::translate(_mtx, position_);
+    glm::mat4x4 trans;
+
+    if (has_transform_) {
+        trans = glm::translate(_mtx, position_);
+    } else {
+        trans = _mtx;
+    }
 
     for (auto child : children_) {
         child->submit(_id, _program, trans, _state);
@@ -68,6 +74,7 @@ static inline Node* load_node(nw::model::Node* node)
             LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
             auto index_mem = bgfx::makeRef(n->indices.data(), uint32_t(n->indices.size() * sizeof(uint16_t)));
             mesh->ibh_ = bgfx::createIndexBuffer(index_mem);
+            mesh->orig = n;
 
             auto mem = bgfx::alloc(uint32_t(n->vertices.size() * Node::layout.getStride()));
 
@@ -79,19 +86,6 @@ static inline Node* load_node(nw::model::Node* node)
             }
 
             mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
-
-            auto key = n->get_controller(nw::model::ControllerType::Position);
-            if (key.data.size() != 3) {
-                LOG_F(FATAL, "Wrong size position: {}", key.data.size());
-            }
-            mesh->position_ = glm::vec3{key.data[0], key.data[1], key.data[2]};
-
-            key = n->get_controller(nw::model::ControllerType::Orientation);
-            if (key.data.size() != 4) {
-                LOG_F(FATAL, "Wrong size orientation: {}", key.data.size());
-            }
-            mesh->orig = n;
-            mesh->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
 
             // Force tga for now
             auto tex = s_textures.load(n->bitmap);
@@ -106,6 +100,21 @@ static inline Node* load_node(nw::model::Node* node)
         }
     } else {
         result = new Node;
+    }
+
+    auto key = node->get_controller(nw::model::ControllerType::Position);
+    if (key.data.size()) {
+        result->has_transform_ = true;
+        if (key.data.size() != 3) {
+            LOG_F(FATAL, "Wrong size position: {}", key.data.size());
+        }
+        result->position_ = glm::vec3{key.data[0], key.data[1], key.data[2]};
+
+        key = node->get_controller(nw::model::ControllerType::Orientation);
+        if (key.data.size() != 4) {
+            LOG_F(FATAL, "Wrong size orientation: {}", key.data.size());
+        }
+        result->rotation_ = glm::vec4{key.data[0], key.data[1], key.data[2], key.data[3]};
     }
 
     for (auto child : node->children) {

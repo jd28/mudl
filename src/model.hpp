@@ -20,8 +20,9 @@ struct Node {
     // Submits mesh data to the GPU
     virtual void submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state = BGFX_STATE_MASK);
 
-    glm::vec3 position_;
-    glm::vec4 rotation_;
+    bool has_transform_ = false;
+    glm::vec3 position_{0.0f};
+    glm::vec4 rotation_{0.0f};
     glm::vec3 scale_ = glm::vec3(1.0);
     std::vector<Node*> children_;
 };

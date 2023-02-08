@@ -249,7 +249,7 @@ int main(int argc, char** argv)
             // Set view and projection matrix for view 0.
             {
                 auto cam_rot = glm::yawPitchRoll(cam_yaw, cam_pitch, 0.0f);
-                auto cam_translate = glm::translate(glm::mat4{1.0f}, {0.0f, -0.5f, -1.5f});
+                auto cam_translate = glm::translate(glm::mat4{1.0f}, {0.0f, 1.5f, -2.5f});
                 auto cam_trans = cam_translate * cam_rot;
                 auto view = glm::inverse(cam_trans);
                 auto proj = glm::perspectiveLH(glm::radians(60.f), float(width) / float(height), 0.1f, 100.0f);
@@ -257,6 +257,7 @@ int main(int argc, char** argv)
             }
 
             glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), {1.0f, 0.0f, 0.0f});
+            glm::rotate(mtx, glm::radians(90.0f), {0.0f, 0.0f, 1.0f});
             model->submit(0, program, mtx);
 
             bgfx::frame();
