@@ -1,6 +1,6 @@
 # mudl
 
-Hackish proof of concept model viewer for NWN Models..  mdl + having only muddled through a couple chapters of graphics book = **mudl**.
+Hackish proof of concept model viewer for NWN Models..  mdl + having only muddled through a couple chapters of graphics book = **mudl**.  See also the opengl branch for an openGL 3.3 (what the game uses) version.
 
 ## Building
 
@@ -51,6 +51,9 @@ respectively.
 
 ## Linux - Vulkan - Evil Aribeth (Some HIDPI Issues)
 ![Linux - Vulkan - Evil Aribeth](screenshots/screen_linux_20230129.png)
+
+## Windows - DirectX 12 - Doom Knight
+![Windows - DirectX 12 - Doom Knight](screenshots/screen_screen_windows_20230208linux_20230129.png)
 
 # Tech
 - bgfx
