@@ -53,7 +53,7 @@ respectively.
 ![Linux - Vulkan - Evil Aribeth](screenshots/screen_linux_20230129.png)
 
 ## Windows - DirectX 12 - Doom Knight
-![Windows - DirectX 12 - Doom Knight](screenshots/screen_screen_windows_20230208linux_20230129.png)
+![Windows - DirectX 12 - Doom Knight](screenshots/screen_windows_20230208.PNG)
 
 # Tech
 - bgfx
