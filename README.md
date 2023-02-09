@@ -17,15 +17,22 @@ Build the shaders macOS/Metal, Linux/OpenGL/Vulkan:
 $ ./build-shaders.sh
 ```
 
+Build the shaders windows dx11/12:
+```
+$ .\build-shaders.ps1
+```
+
 ```
 cd bin/
-./mudl <command> [<args>]
+./mudl <command> <model>
 ```
+
+where model is a model without extension: i.e. 'c_aribeth'
 
 ## Usage
 
 ```
-mudl <command> [<args>]
+mudl <command> <model>
 
 Commands
 --------
@@ -43,6 +50,8 @@ respectively.
   with NWN:EE
 - No emitters, danglymesh, skinmesh, etc.
 - No animations.. yet.
+- No plt textures.. on the opengl branch there was a test that seems like it can get the layers right, but
+  the colors are wrong
 
 # Screens
 
