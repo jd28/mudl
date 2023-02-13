@@ -3,6 +3,7 @@ find_package(imgui CONFIG REQUIRED)
 
 add_executable(mudl
     main.cpp
+    extract.cpp
     model.cpp
     util.cpp
     ModelCache.cpp

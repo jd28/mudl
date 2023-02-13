@@ -1,12 +1,12 @@
-#include "model.hpp"
-
 #include "ModelCache.hpp"
 #include "TextureCache.hpp"
 #include "bgfx-imgui/imgui_impl_bgfx.h"
-#include "imgui.h"
+#include "extract.hpp"
+#include "model.hpp"
 #include "sdl-imgui/imgui_impl_sdl.h"
 #include "util.hpp"
 
+#include "imgui.h"
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 #include <bx/bx.h>
@@ -71,40 +71,7 @@ int main(int argc, char** argv)
             std::cout << extract_usage;
             return 1;
         }
-        // Proof of concept, one hardcoded model, obviously this is stupid.
-        nw::Resource res{std::string_view(argv[2]), nw::ResourceType::mdl};
-        nw::model::Mdl mdl{nw::kernel::resman().demand(res)};
-        nw::kernel::resman().extract_by_glob(res.filename(), ".");
-        for (const auto& node : mdl.model.nodes) {
-            if (node->type & nw::model::NodeFlags::mesh) {
-                auto n = static_cast<const nw::model::TrimeshNode*>(node.get());
-                if (n->bitmap.size()) {
-                    auto re = std::regex{n->bitmap + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
-                    nw::kernel::resman().extract(re, ".");
-                }
-
-                if (n->materialname.size()) {
-                    auto re = std::regex{n->materialname + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
-                    nw::kernel::resman().extract(re, ".");
-                }
-
-                if (n->textures[0].size()) {
-                    auto re = std::regex{n->textures[0] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
-                    nw::kernel::resman().extract(re, ".");
-                }
-
-                if (n->textures[1].size()) {
-                    auto re = std::regex{n->textures[1] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
-                    nw::kernel::resman().extract(re, ".");
-                }
-
-                if (n->textures[2].size()) {
-                    auto re = std::regex{n->textures[2] + "\\.(mtr|dds|plt|tga|txi)", std::regex_constants::icase};
-                    nw::kernel::resman().extract(re, ".");
-                }
-            }
-        }
-
+        extract(std::string_view(argv[2]));
     } else if ("view"sv == argv[1]) {
         if (argc < 3) {
             std::cout << view_usage;
