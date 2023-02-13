@@ -76,15 +76,7 @@ static inline Node* load_node(nw::model::Node* node)
             mesh->ibh_ = bgfx::createIndexBuffer(index_mem);
             mesh->orig = n;
 
-            auto mem = bgfx::alloc(uint32_t(n->vertices.size() * Node::layout.getStride()));
-
-            uint32_t i = 0;
-            for (const auto& v : n->vertices) {
-                bgfx::vertexPack(&v.position.x, false, bgfx::Attrib::Position, Node::layout, mem->data, i);
-                bgfx::vertexPack(&v.tex_coords.x, false, bgfx::Attrib::TexCoord0, Node::layout, mem->data, i);
-                ++i;
-            }
-
+            auto mem = bgfx::makeRef(n->vertices.data(), uint32_t(n->vertices.size() * Node::layout.getStride()));
             mesh->vbh_ = bgfx::createVertexBuffer(mem, Node::layout);
 
             // Force tga for now
