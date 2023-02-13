@@ -4,6 +4,3 @@
 [submodule "external/rollnw"]
 	path = external/rollnw
 	url = https://github.com/jd28/rollnw.git
-[submodule "external/imgui"]
-	path = external/imgui
-	url = https://github.com/pr0g/imgui.cmake.git
