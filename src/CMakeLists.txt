@@ -4,6 +4,7 @@ find_package(imgui CONFIG REQUIRED)
 add_executable(mudl
     main.cpp
     extract.cpp
+    imgui.cpp
     model.cpp
     util.cpp
     ModelCache.cpp
@@ -21,12 +22,12 @@ target_link_libraries(mudl PRIVATE
     bgfx
     bx
     bimg
-    imgui::imgui
     $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
     SDL2::SDL2-static
 )
 
 target_include_directories(mudl SYSTEM PRIVATE
     ${CMAKE_BINARY_DIR}/include/generated/shaders
-    ../external/imgui/imgui
+    ../external/imgui/
+    ../external/
 )
