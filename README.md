@@ -31,13 +31,18 @@ where model is a model without extension: i.e. 'c_aribeth'
 
 ## Usage
 
+Model Viewer:
 ```
-mudl <command> <model>
+./mudl
+```
+
+Model Tools
+```
+./mudl [<command>] [<model>]
 
 Commands
 --------
     extract     Extracts a model and its corresponding textures, material, txi files (maybe)
-    view        Open a model for viewing
 ```
 
 **mudl** should be able to find your NWN install and user directory.  If not set the
@@ -54,6 +59,9 @@ respectively.
   the colors are wrong
 
 # Screens
+
+## macOS - Metal - Model Selector
+![macOS - Metal - Model Selector](screenshots/screen_macos_metal_20230219.png)
 
 ## macOS - Metal - Dire Tiger (No Toenails)
 ![macOS - Metal - Dire Tiger (No Toenails)](screenshots/screen_apple_20230127.png)

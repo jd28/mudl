@@ -23,6 +23,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+#include <absl/container/btree_set.h>
 
 #include <iostream>
 #include <regex>
@@ -34,28 +35,18 @@ using namespace std::literals;
 static ModelCache s_models;
 TextureCache s_textures;
 
-auto usage = R"eof(usage: mudl <command> [<args>]
+auto usage = R"eof(usage: mudl [<command>] [<args>]
 
 Commands
 --------
     extract     Extracts a model and all its corresponding textures
-    info        Prints data regarding the structure of the model
-    view        Open a model for viewing
 )eof";
 
 auto extract_usage = R"eof(usage: mudl extract <resref>
 )eof";
 
-auto view_usage = R"eof(usage: mudl view <resref>
-)eof";
-
 int main(int argc, char** argv)
 {
-    if (argc < 2) {
-        std::cout << usage;
-        return 1;
-    }
-
     nw::init_logger(argc, argv);
     auto info = nw::probe_nwn_install();
     nw::kernel::config().initialize({
@@ -66,18 +57,13 @@ int main(int argc, char** argv)
     nw::kernel::resman().add_container(new nw::Directory("assets"));
     nw::kernel::services().start();
 
-    if ("extract"sv == argv[1]) {
+    if (argc > 1 && "extract"sv == argv[1]) {
         if (argc < 3) {
             std::cout << extract_usage;
             return 1;
         }
         extract(std::string_view(argv[2]));
-    } else if ("view"sv == argv[1]) {
-        if (argc < 3) {
-            std::cout << view_usage;
-            return 1;
-        }
-
+    } else {
         // NWN Textures are pre-flipped, bgfx flips them, I guess, so we got to flip back before the flip..
         stbi_set_flip_vertically_on_load(true);
 
@@ -86,11 +72,11 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        const int width = 800;
-        const int height = 600;
+        int width = 800;
+        int height = 600;
         SDL_Window* window = SDL_CreateWindow(
             argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-            height, SDL_WINDOW_SHOWN);
+            height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
         if (window == nullptr) {
             printf("Window could not be created. SDL_Error: %s\n", SDL_GetError());
@@ -139,6 +125,9 @@ int main(int argc, char** argv)
         s_textures.load_placeholder();
 
         ImGui::CreateContext();
+        auto& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        ImGui::StyleColorsDark();
 
         ImGui_Implbgfx_Init(255);
 #if BX_PLATFORM_WINDOWS
@@ -167,12 +156,23 @@ int main(int argc, char** argv)
         auto program = bgfx::createProgram(vs_mudl_shd_handle, fs_mudl_shd_handle, true);
         bgfx::setViewClear(
             0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xD3D3D3FF, 1.0f, 0);
-        bgfx::setViewRect(0, 0, 0, width, height);
+        bgfx::setViewRect(0, 0, 0, uint16_t(width), uint16_t(height));
+
+        absl::btree_set<std::string> models;
+        std::string selected_model;
+        auto cb = [&models](const nw::Resource& res) {
+            if (res.type == nw::ResourceType::mdl) {
+                models.emplace(res.resref.view());
+            }
+        };
+        nw::kernel::resman().visit(cb);
 
         // Proof of concept, one hardcoded model, obviously this is stupid.
-        auto model = s_models.load(argv[2]);
+        auto model = s_models.load("c_aribeth");
         if (!model) {
             LOG_F(FATAL, "uanble to load model.");
+        } else {
+            selected_model = "c_aribeth";
         }
 
         int prev_mouse_x = 0;
@@ -180,22 +180,65 @@ int main(int argc, char** argv)
         float cam_pitch = 0.0f;
         float cam_yaw = 0.0f;
         float rot_scale = 0.01f;
+        glm::vec3 camera_position{0.0f, 1.5f, -2.5f};
+        glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+        glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
         bool exit = false;
         while (!exit) {
-            for (SDL_Event currentEvent; SDL_PollEvent(&currentEvent) != 0;) {
-                ImGui_ImplSDL2_ProcessEvent(&currentEvent);
-                if (currentEvent.type == SDL_QUIT) {
+            bgfx::touch(0);
+
+            for (SDL_Event ev; SDL_PollEvent(&ev) != 0;) {
+                ImGui_ImplSDL2_ProcessEvent(&ev);
+                if (ev.type == SDL_QUIT) {
                     exit = true;
                     break;
+                } else if (ev.type == SDL_WINDOWEVENT) {
+                    const SDL_WindowEvent& wev = ev.window;
+                    switch (wev.event) {
+                    case SDL_WINDOWEVENT_RESIZED:
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                        width = wev.data1;
+                        height = wev.data2;
+                        bgfx::reset(wev.data1, wev.data2, BGFX_RESET_VSYNC);
+                        bgfx::setViewRect(0, 0, 0, uint16_t(width), uint16_t(height));
+                        break;
+                    }
+                } else if (ev.type == SDL_KEYDOWN) {
+                    const float cameraSpeed = 0.1f;
+                    switch (ev.key.keysym.sym) {
+                    case SDLK_w:
+                        camera_position -= cameraSpeed * cameraFront;
+                        break;
+                    case SDLK_a:
+                        camera_position -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+                        break;
+                    case SDLK_s:
+                        camera_position += cameraSpeed * cameraFront;
+                        break;
+                    case SDLK_d:
+                        camera_position += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+                        break;
+                    }
                 }
             }
 
             ImGui_Implbgfx_NewFrame();
             ImGui_ImplSDL2_NewFrame();
-
             ImGui::NewFrame();
-            ImGui::ShowDemoWindow(); // your drawing here
+
+            ImGui::BeginListBox("Models", {-FLT_MIN, -FLT_MIN});
+            for (const auto& it : models) {
+                if (ImGui::Selectable(it.c_str(), selected_model == it)) {
+                    auto new_model = s_models.load(it);
+                    if (new_model) {
+                        model = new_model;
+                        selected_model = it;
+                    }
+                }
+            }
+            ImGui::EndListBox();
+
             ImGui::Render();
             ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
 
@@ -213,12 +256,10 @@ int main(int argc, char** argv)
                 prev_mouse_y = mouse_y;
             }
 
-            bgfx::touch(0);
-
             // Set view and projection matrix for view 0.
             {
                 auto cam_rot = glm::yawPitchRoll(cam_yaw, cam_pitch, 0.0f);
-                auto cam_translate = glm::translate(glm::mat4{1.0f}, {0.0f, 1.5f, -2.5f});
+                auto cam_translate = glm::translate(glm::mat4{1.0f}, camera_position);
                 auto cam_trans = cam_translate * cam_rot;
                 auto view = glm::inverse(cam_trans);
                 auto proj = glm::perspectiveLH(glm::radians(60.f), float(width) / float(height), 0.1f, 100.0f);
@@ -239,9 +280,7 @@ int main(int argc, char** argv)
 
         SDL_DestroyWindow(window);
         SDL_Quit();
-    } else {
-        std::cout << usage;
-        return 1;
     }
+
     return 0;
 }
