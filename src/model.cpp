@@ -67,7 +67,7 @@ void Mesh::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
 static inline Node* load_node(nw::model::Node* node)
 {
     Node* result = nullptr;
-    if (node->type & nw::model::NodeFlags::mesh) {
+    if (node->type & nw::model::NodeFlags::mesh && !(node->type & nw::model::NodeFlags::aabb)) {
         auto n = static_cast<nw::model::TrimeshNode*>(node);
         if (!n->indices.empty()) {
             Mesh* mesh = new Mesh;
@@ -87,6 +87,7 @@ static inline Node* load_node(nw::model::Node* node)
                 LOG_F(FATAL, "Failed to bind texture");
             }
             result = mesh;
+
         } else {
             LOG_F(ERROR, "No vertex indicies");
         }

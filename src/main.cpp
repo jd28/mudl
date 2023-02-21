@@ -167,7 +167,6 @@ int main(int argc, char** argv)
         };
         nw::kernel::resman().visit(cb);
 
-        // Proof of concept, one hardcoded model, obviously this is stupid.
         auto model = s_models.load("c_aribeth");
         if (!model) {
             LOG_F(FATAL, "uanble to load model.");
@@ -227,6 +226,7 @@ int main(int argc, char** argv)
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
+            ImGui::Begin("Models");
             ImGui::BeginListBox("Models", {-FLT_MIN, -FLT_MIN});
             for (const auto& it : models) {
                 if (ImGui::Selectable(it.c_str(), selected_model == it)) {
