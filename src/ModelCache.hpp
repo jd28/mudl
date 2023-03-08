@@ -7,12 +7,12 @@
 #include <memory>
 
 struct ModelPayload {
-    std::unique_ptr<Node> model_;
+    std::unique_ptr<Model> model_;
     std::unique_ptr<nw::model::Mdl> original_;
     uint32_t refcount_ = 0;
 };
 
 struct ModelCache {
-    Node* load(std::string_view resref);
+    Model* load(std::string_view resref);
     absl::flat_hash_map<std::string, ModelPayload> map_;
 };

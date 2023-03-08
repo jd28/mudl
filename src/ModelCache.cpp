@@ -2,7 +2,7 @@
 
 #include <nw/kernel/Resources.hpp>
 
-Node* ModelCache::load(std::string_view resref)
+Model* ModelCache::load(std::string_view resref)
 {
     absl::string_view needle{resref.data(), resref.size()};
     auto it = map_.find(needle);
@@ -23,7 +23,7 @@ Node* ModelCache::load(std::string_view resref)
             LOG_F(ERROR, "Failed to load model: {}", resref);
             return nullptr;
         }
-        map_.emplace(std::string(resref), ModelPayload{std::unique_ptr<Node>(node), std::move(model), 1});
+        map_.emplace(std::string(resref), ModelPayload{std::unique_ptr<Model>(node), std::move(model), 1});
         return node;
     } else {
         ++it->second.refcount_;

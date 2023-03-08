@@ -167,12 +167,28 @@ int main(int argc, char** argv)
         };
         nw::kernel::resman().visit(cb);
 
-        auto model = s_models.load("c_aribeth");
+        Model* model = s_models.load("c_aribeth");
         if (!model) {
             LOG_F(FATAL, "uanble to load model.");
         } else {
             selected_model = "c_aribeth";
         }
+
+        absl::btree_set<std::string> animations;
+        std::string selected_animation; // = "walk";
+
+        auto* sm = model->mdl_;
+        while (sm) {
+            for (const auto& it : sm->animations) {
+                animations.insert(it->name);
+            }
+            if (!sm->supermodel) { break; }
+            sm = &sm->supermodel->model;
+        }
+
+        // if (!model->load_animation(selected_animation)) {
+        //     LOG_F(ERROR, "Failed to load animation: {}", selected_animation);
+        // }
 
         int prev_mouse_x = 0;
         int prev_mouse_y = 0;
@@ -183,8 +199,10 @@ int main(int argc, char** argv)
         glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
         glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+        int32_t delta_time = 0;
         bool exit = false;
         while (!exit) {
+            auto start_frame = std::chrono::steady_clock::now();
             bgfx::touch(0);
 
             for (SDL_Event ev; SDL_PollEvent(&ev) != 0;) {
@@ -234,10 +252,32 @@ int main(int argc, char** argv)
                     if (new_model) {
                         model = new_model;
                         selected_model = it;
+                        animations.clear();
+                        sm = model->mdl_;
+                        while (sm) {
+                            for (const auto& anim : sm->animations) {
+                                animations.insert(anim->name);
+                            }
+                            if (!sm->supermodel) { break; }
+                            sm = &sm->supermodel->model;
+                        }
                     }
                 }
             }
             ImGui::EndListBox();
+            ImGui::End();
+
+            if (animations.size()) {
+                ImGui::Begin("Animations");
+                for (const auto& anim : animations) {
+                    if (ImGui::Selectable(anim.c_str(), selected_animation == anim)) {
+                        selected_animation = anim;
+                        if (!model->load_animation(selected_animation)) {
+                            LOG_F(ERROR, "Failed to load animation: {}", selected_animation);
+                        }
+                    }
+                }
+            }
 
             ImGui::Render();
             ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
@@ -268,9 +308,12 @@ int main(int argc, char** argv)
 
             glm::mat4 mtx = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), {1.0f, 0.0f, 0.0f});
             glm::rotate(mtx, glm::radians(90.0f), {0.0f, 0.0f, 1.0f});
+            model->update(delta_time);
             model->submit(0, program, mtx);
 
             bgfx::frame();
+            auto end_frame = std::chrono::steady_clock::now();
+            delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_frame - start_frame).count();
         }
 
         bgfx::shutdown();

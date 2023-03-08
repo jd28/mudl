@@ -4,6 +4,7 @@
 
 #include <bgfx/bgfx.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/matrix.hpp>
 
 #include <vector>
@@ -17,14 +18,26 @@ struct Node {
     virtual ~Node() = default;
     virtual void reset() { }
 
-    // Submits mesh data to the GPU
+    /// Finds a node by name
+    Node* find(std::string_view name);
+    /// Submits mesh data to the GPU
     virtual void submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4x4& _mtx, uint64_t _state = BGFX_STATE_MASK);
 
+    nw::model::Node* orig_ = nullptr;
     bool has_transform_ = false;
     glm::vec3 position_{0.0f};
-    glm::vec4 rotation_{0.0f};
+    glm::quat rotation_{};
     glm::vec3 scale_ = glm::vec3(1.0);
     std::vector<Node*> children_;
+};
+
+struct Model : public Node {
+    nw::model::Model* mdl_ = nullptr;
+    nw::model::Animation* anim_ = nullptr;
+    int32_t anim_cursor = 0;
+
+    bool load_animation(std::string_view anim);
+    void update(int32_t dt);
 };
 
 struct Mesh : public Node {
@@ -32,7 +45,6 @@ struct Mesh : public Node {
     // Submits mesh data to the GPU
     virtual void submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4& _mtx, uint64_t _state = BGFX_STATE_MASK) override;
 
-    nw::model::TrimeshNode* orig = nullptr;
     bgfx::VertexBufferHandle vbh_;
     bgfx::IndexBufferHandle ibh_;
     uint16_t num_vertices_ = 0;
@@ -51,4 +63,4 @@ struct Mesh : public Node {
     // PrimitiveArray prims_;
 };
 
-Node* load_model(nw::model::Model* mdl);
+Model* load_model(nw::model::Model* mdl);
