@@ -90,6 +90,15 @@ int main(int argc, char** argv)
             .add(bgfx::Attrib::Tangent, 4, bgfx::AttribType::Float)
             .end();
 
+        Skin::layout.begin()
+            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::Tangent, 4, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::Indices, 4, bgfx::AttribType::Int16)
+            .add(bgfx::Attrib::Weight, 4, bgfx::AttribType::Float)
+            .end();
+
 #if !BX_PLATFORM_EMSCRIPTEN
         SDL_SysWMinfo wmi;
         SDL_VERSION(&wmi.version);
@@ -143,6 +152,10 @@ int main(int argc, char** argv)
         if (vs_mudl_bytes.size() == 0) {
             return 1;
         }
+        nw::ByteArray vs_skin_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "vs_skin_mudl.bin");
+        if (vs_mudl_bytes.size() == 0) {
+            return 1;
+        }
         nw::ByteArray fs_mudl_bytes = nw::ByteArray::from_file(get_shader_path() / "fs_mudl.bin");
         if (fs_mudl_bytes.size() == 0) {
             return 1;
@@ -150,9 +163,12 @@ int main(int argc, char** argv)
 
         auto vs_mudl_shd_handle = bgfx::createShader(bgfx::makeRef(vs_mudl_bytes.data(),
             uint32_t(vs_mudl_bytes.size())));
+        auto vs_skin_smudl_shd_handle = bgfx::createShader(bgfx::makeRef(vs_skin_mudl_bytes.data(),
+            uint32_t(vs_mudl_bytes.size())));
         auto fs_mudl_shd_handle = bgfx::createShader(bgfx::makeRef(fs_mudl_bytes.data(),
             uint32_t(fs_mudl_bytes.size())));
 
+        Node::skinned_program = bgfx::createProgram(vs_skin_smudl_shd_handle, fs_mudl_shd_handle, true);
         auto program = bgfx::createProgram(vs_mudl_shd_handle, fs_mudl_shd_handle, true);
         bgfx::setViewClear(
             0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xD3D3D3FF, 1.0f, 0);

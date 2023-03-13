@@ -53,13 +53,17 @@ respectively.
 
 - This is limited to fairly basic models from the 1.69, which is basically all the ones that come
   with NWN:EE
-- No emitters, danglymesh, skinmesh, etc.
+- Skinmesh animation works for some models, but not others
+- No emitters, danglymesh, etc.
 - Only basic animations are supported, and from compiled models.  ASCII model animations need a fix in the
   core library. No LERPing, screenshot below is much slower than actual.
 - No plt textures.. on the opengl branch there was a test that seems like it can get the layers right, but
   the colors are wrong
 
 # Screens
+
+## macOS - Metal - Skinned Animation
+![macOS - Metal - Skinned Animation](screenshots/screen_macos_metal_20230313.gif)
 
 ## macOS - Metal - Some Animations and a Boot to your Face
 ![macOS - Metal - Some Animations and a Boot to your Face](screenshots/screen_macos_metal_20230307.gif)

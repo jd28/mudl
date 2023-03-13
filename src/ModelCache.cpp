@@ -18,13 +18,13 @@ Model* ModelCache::load(std::string_view resref)
             LOG_F(ERROR, "Failed to parse model: {}", resref);
             return nullptr;
         }
-        auto node = load_model(&model.get()->model);
-        if (!node) {
+        auto mdl = new Model;
+        if (!mdl->load(&model.get()->model)) {
             LOG_F(ERROR, "Failed to load model: {}", resref);
             return nullptr;
         }
-        map_.emplace(std::string(resref), ModelPayload{std::unique_ptr<Model>(node), std::move(model), 1});
-        return node;
+        map_.emplace(std::string(resref), ModelPayload{std::unique_ptr<Model>(mdl), std::move(model), 1});
+        return mdl;
     } else {
         ++it->second.refcount_;
         return it->second.model_.get();

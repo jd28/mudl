@@ -1,4 +1,4 @@
-$input a_position, a_texcoord0
+$input a_position, a_texcoord0, a_normal, a_tangent,
 $output v_texcoord0
 
 #include "common.sh"
