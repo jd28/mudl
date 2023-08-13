@@ -30,4 +30,9 @@ target_include_directories(mudl SYSTEM PRIVATE
     ${CMAKE_BINARY_DIR}/include/generated/shaders
     ../external/imgui/
     ../external/
+    ../external/bgfx/bgfx/include
+    ../external/bgfx/bimg/include
+    ../external/bgfx/bx/include
+    ../external/rollnw/lib
+    ../external/rollnw/external
 )

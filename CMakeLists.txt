@@ -22,12 +22,6 @@ if(ROLLNW_ENABLE_LEGACY)
 add_definitions(-DROLLNW_ENABLE_LEGACY)
 endif()
 
-include_directories(SYSTEM external/bgfx/bgfx/include)
-include_directories(SYSTEM external/bgfx/bimg/include)
-include_directories(SYSTEM external/bgfx/bx/include)
-include_directories(SYSTEM external/rollnw/lib)
-include_directories(SYSTEM external/rollnw/external)
-
 add_subdirectory(external/bgfx)
 add_subdirectory(external/rollnw)
 
