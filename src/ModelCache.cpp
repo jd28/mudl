@@ -4,16 +4,15 @@
 
 Model* ModelCache::load(std::string_view resref)
 {
-    absl::string_view needle{resref.data(), resref.size()};
-    auto it = map_.find(needle);
+    auto it = map_.find(std::string(resref));
     if (it == std::end(map_)) {
-        auto bytes = nw::kernel::resman().demand({resref, nw::ResourceType::mdl});
-        if (bytes.size() == 0) {
+        auto rd = nw::kernel::resman().demand({resref, nw::ResourceType::mdl});
+        if (rd.bytes.size() == 0) {
             LOG_F(ERROR, "Failed to find model: {}", resref);
             return nullptr;
         }
 
-        auto model = std::make_unique<nw::model::Mdl>(std::move(bytes));
+        auto model = std::make_unique<nw::model::Mdl>(std::move(rd));
         if (!model->valid()) {
             LOG_F(ERROR, "Failed to parse model: {}", resref);
             return nullptr;
@@ -23,7 +22,9 @@ Model* ModelCache::load(std::string_view resref)
             LOG_F(ERROR, "Failed to load model: {}", resref);
             return nullptr;
         }
-        map_.emplace(std::string(resref), ModelPayload{std::unique_ptr<Model>(mdl), std::move(model), 1});
+        std::string name = std::string(rd.name.resref.view());
+        LOG_F(INFO, "Resref: {}", name);
+        map_.insert({name, ModelPayload{std::unique_ptr<Model>(mdl), std::move(model), 1}});
         return mdl;
     } else {
         ++it->second.refcount_;

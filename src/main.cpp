@@ -32,7 +32,7 @@
 
 using namespace std::literals;
 
-static ModelCache s_models;
+ModelCache s_models;
 TextureCache s_textures;
 
 auto usage = R"eof(usage: mudl [<command>] [<args>]

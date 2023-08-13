@@ -13,6 +13,8 @@ struct ModelPayload {
 };
 
 struct ModelCache {
+    ModelCache() = default;
     Model* load(std::string_view resref);
-    absl::flat_hash_map<std::string, ModelPayload> map_;
+
+    std::unordered_map<std::string, ModelPayload> map_;
 };

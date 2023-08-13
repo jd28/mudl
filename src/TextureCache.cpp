@@ -22,14 +22,14 @@ std::optional<bgfx::TextureHandle> TextureCache::load(std::string_view resref)
     auto it = map_.find(needle);
     if (it == std::end(map_)) {
         // Create
-        auto [bytes, ty] = nw::kernel::resman().demand_in_order(resref, {nw::ResourceType::dds, nw::ResourceType::tga});
-        if (bytes.size() == 0) {
-            LOG_F(ERROR, "Failed to find texture: {} of type: {}", resref, ty);
+        auto rd = nw::kernel::resman().demand_in_order(resref, {nw::ResourceType::dds, nw::ResourceType::tga});
+        if (rd.bytes.size() == 0) {
+            LOG_F(ERROR, "Failed to find texture: {} of type: {}", resref, int(rd.name.type));
             return place_holder_;
         }
-        auto img = std::make_unique<nw::Image>(std::move(bytes), ty == nw::ResourceType::dds);
+        auto img = std::make_unique<nw::Image>(std::move(rd));
         if (!img->valid()) {
-            LOG_F(ERROR, "Failed to load image: {} of type: {}", resref, ty);
+            LOG_F(ERROR, "Failed to load image: {} of type: {}", resref, int(rd.name.type));
             return place_holder_;
         }
 
