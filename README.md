@@ -2,6 +2,8 @@
 
 Hackish proof of concept model viewer for NWN Models..  mdl + having only muddled through a couple chapters of graphics book = **mudl**.  See also the opengl branch for an openGL 3.3 (what the game uses) version.
 
+No NWN:EE, no Danglymeshes, no emitters, and Skin meshes are still not right for all models.
+
 ## Building
 
 Install [vcpkg](https://github.com/microsoft/vcpkg) - see the **Getting Started** section.
@@ -61,6 +63,9 @@ respectively.
   the colors are wrong
 
 # Screens
+
+## macOS - Metal - Skinned Animation 2
+![macOS - Metal - Skinned Animation](screenshots/screen_macos_metal_20230812.gif)
 
 ## macOS - Metal - Skinned Animation
 ![macOS - Metal - Skinned Animation](screenshots/screen_macos_metal_20230313.gif)

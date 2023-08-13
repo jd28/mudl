@@ -32,6 +32,7 @@ struct Node {
     glm::vec3 scale_ = glm::vec3(1.0);
     std::vector<Node*> children_;
     bool no_render_ = false;
+    glm::mat4 inverse_{1.0f};
 };
 
 struct Model : public Node {
@@ -86,13 +87,14 @@ struct Skin : public Node {
     // Submits mesh data to the GPU
     virtual void submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat4& _mtx, uint64_t _state = BGFX_STATE_MASK) override;
 
+    void build_inverse_binds();
     bgfx::VertexBufferHandle vbh_;
     bgfx::IndexBufferHandle ibh_;
     uint16_t num_vertices_ = 0;
     uint8_t* vertices_ = nullptr;
     uint32_t num_indices_ = 0;
     uint16_t* indices_ = nullptr;
-    std::array<glm::mat4, 64> inverse_binds_;
+    std::vector<glm::mat4> inverse_bind_pose_;
     std::array<glm::mat4, 64> joints_;
 
     bgfx::TextureHandle texture0;
