@@ -64,6 +64,9 @@ respectively.
 
 # Screens
 
+## macOS - Metal - Skinned Animation 3 (ASCII Model)
+![macOS - Metal - Skinned Animation](screenshots/screen_macos_metal_20230814.gif)
+
 ## macOS - Metal - Skinned Animation 2
 ![macOS - Metal - Skinned Animation](screenshots/screen_macos_metal_20230812.gif)
 

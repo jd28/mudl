@@ -114,7 +114,6 @@ Node* Model::load_node(nw::model::Node* node, Node* parent)
         auto n = static_cast<nw::model::SkinNode*>(node);
         if (!n->indices.empty()) {
             Skin* skin = new Skin;
-            LOG_F(INFO, "name: {} index size: {}", n->name, n->indices.size() / 3);
             auto index_mem = bgfx::makeRef(n->indices.data(), uint32_t(n->indices.size() * sizeof(uint16_t)));
             skin->ibh_ = bgfx::createIndexBuffer(index_mem);
 
@@ -298,24 +297,14 @@ void Skin::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
             | BGFX_STATE_MSAA;
     }
 
-    auto orig_skin = static_cast<nw::model::SkinNode*>(orig_);
-    auto trans = glm::translate(_mtx, position_);
-    trans = trans * glm::toMat4(rotation_);
-    trans = glm::scale(trans, scale_);
-
     auto orig = static_cast<nw::model::SkinNode*>(orig_);
+
     for (size_t i = 0; i < 64; ++i) {
-        if (orig->bone_nodes[i] == -1 || size_t(orig->bone_nodes[i]) >= owner_->nodes_.size()) {
+        if (orig->bone_nodes[i] < 0 || size_t(orig->bone_nodes[i]) >= owner_->nodes_.size()) {
             break;
         }
         auto bone_node = owner_->nodes_[orig->bone_nodes[i]].get();
-        if (orig_skin->bone_translation_inv.size()) {
-            joints_[i] = bone_node->get_transform()
-                * (glm::translate(glm::mat4{1.0f}, orig_skin->bone_translation_inv[orig->bone_nodes[i]])
-                    * glm::toMat4(orig_skin->bone_rotation_inv[orig->bone_nodes[i]]));
-        } else {
-            joints_[i] = bone_node->get_transform() * inverse_bind_pose_[orig->bone_nodes[i]];
-        }
+        joints_[i] = bone_node->get_transform() * inverse_bind_pose_[orig->bone_nodes[i]];
     }
 
     bgfx::setTransform(&_mtx[0][0]);
@@ -334,31 +323,30 @@ void Skin::submit(bgfx::ViewId _id, bgfx::ProgramHandle _program, const glm::mat
     }
 }
 
-inline void build_inverser_bind_array(Node* node, glm::mat4 parent_transform, std::vector<glm::mat4>& binds)
+inline void build_inverse_bind_array(Skin* parent, Node* node, glm::mat4 parent_transform, std::vector<glm::mat4>& binds)
 {
     if (!node) { return; }
-    auto trans = glm::translate(glm::mat4{1.0f}, node->position_);
+    auto trans = glm::translate(parent_transform, node->position_);
     trans = trans * glm::toMat4(node->rotation_);
-    trans = parent_transform * glm::inverse(trans);
-    binds.push_back(trans);
+    binds.push_back(glm::inverse(trans));
 
     for (auto n : node->children_) {
-        build_inverser_bind_array(n, trans, binds);
+        build_inverse_bind_array(parent, n, trans, binds);
     }
 }
 
 void Skin::build_inverse_binds()
 {
-    auto trans = glm::translate(glm::mat4{1.0f}, position_) * glm::toMat4(rotation_);
-
+    glm::mat4 ptrans{1.0f};
     Node* parent = this;
     while (parent->parent_) {
         parent = parent->parent_;
         if (parent->has_transform_) {
-            auto ptrans = glm::translate(glm::mat4{1.0f}, parent->position_) * glm::toMat4(parent->rotation_);
-            trans *= ptrans;
+            glm::translate(ptrans, parent->position_) * glm::toMat4(parent->rotation_);
         }
     }
 
-    build_inverser_bind_array(parent, trans, inverse_bind_pose_);
+    auto trans = glm::translate(ptrans, position_) * glm::toMat4(rotation_);
+
+    build_inverse_bind_array(this, parent, glm::inverse(trans), inverse_bind_pose_);
 }
