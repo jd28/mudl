@@ -2,8 +2,6 @@
 
 Hackish proof of concept model viewer for NWN Models..  mdl + having only muddled through a couple chapters of graphics book = **mudl**.  See also the opengl branch for an openGL 3.3 (what the game uses) version.
 
-No NWN:EE, no Danglymeshes, no emitters, and Skin meshes are still not right for all models.
-
 ## Building
 
 Install [vcpkg](https://github.com/microsoft/vcpkg) - see the **Getting Started** section.
@@ -55,7 +53,6 @@ respectively.
 
 - This is limited to fairly basic models from the 1.69, which is basically all the ones that come
   with NWN:EE
-- Skinmesh animation works for some models, but not others
 - No emitters, danglymesh, etc.
 - Only basic animations are supported, and from compiled models.  ASCII model animations need a fix in the
   core library. No LERPing, screenshot below is much slower than actual.
